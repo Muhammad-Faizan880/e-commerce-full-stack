@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+  --color-olive-50: #f5f6f3;
+  --color-olive-100: #e6ebe0;
+  --color-olive-200: #d0dac6;
+  --color-olive-300: #b0c2a2;
+  --color-olive-400: #8ca37b;
+  --color-olive-500: #6b825a;
+  --color-olive-600: #4e5f41; /* Signature Copenhagen olive */
+  --color-olive-700: #3e4c34;
+  --color-olive-800: #343e2c;
+  --color-olive-900: #2c3526;
+  --color-olive-950: #171c13;
+
+  --color-offwhite-50: #fdfdfc;
+  --color-offwhite-100: #faf9f5;
+  --color-offwhite-200: #f4f3ec;
+  --color-offwhite-300: #eae7dc;
+  --color-offwhite-400: #dad6c7;
+  --color-offwhite: #f7f6f2;
+  --color-offwhite-surface: #faf9f5;
+  --color-offwhite-card: #f1efe8;
+  --color-offwhite-hover: #ebe8df;
+
+  --color-copen-black: #141414;
+  --color-copen-dark: #1c1c1c;
+  --color-copen-charcoal: #2a2a2a;
+  --color-copen-gray: #595959;
+  --color-copen-muted: #8c8c8c;
+  --color-copen-light: #bfbfbf;
+  --color-copen-border: #e3dfd4;
+  --color-copen-border-dark: #333333;
+
+  --font-serif: "Cormorant Garamond", "Playfair Display", Georgia, serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: #f7f6f2;
+    color: #141414;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Custom subtle scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #f1efe8;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #c9c5b8;
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #4e5f41;
+  }
+}
