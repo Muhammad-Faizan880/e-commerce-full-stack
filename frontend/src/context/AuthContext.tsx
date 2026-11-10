@@ -12,6 +12,7 @@ import {
   setAuthMode as reduxSetMode,
   setResetSentEmail as reduxSetResetEmail,
 } from '../store/slices/authSlice';
+import { forgotPasswordApi } from '../api/authApi';
 
 interface AuthContextType {
   user: User | null;
@@ -120,11 +121,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { success: false, error: 'Please provide a valid email address.' };
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    dispatch(reduxSetResetEmail(email.trim()));
-    dispatch(reduxSetMode('reset-sent'));
-    showToast(`Password reset link sent to ${email}`, 'success');
-    return { success: true };
+    try {
+      const res = await forgotPasswordApi(email.trim().toLowerCase());
+      dispatch(reduxSetResetEmail(email.trim()));
+      dispatch(reduxSetMode('reset-sent'));
+      showToast(res.message || `Password reset link sent to ${email}`, 'success');
+      return { success: true };
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { message?: string } }; message?: string };
+      const message =
+        apiErr.response?.data?.message ||
+        apiErr.message ||
+        'Unable to process password reset request.';
+      return { success: false, error: message };
+    }
   };
 
   const updateProfile = (updates: Partial<User>) => {

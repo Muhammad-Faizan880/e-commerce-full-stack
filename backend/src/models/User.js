@@ -22,6 +22,15 @@ const userSchema = new mongoose.Schema(
       select: false,
     },
 
+    passwordResetToken: {
+      type: String,
+      select: false,
+    },
+
+    passwordResetExpires: {
+      type: Date,
+      select: false,
+    },
     phone: {
       type: String,
       trim: true,
@@ -41,7 +50,7 @@ const userSchema = new mongoose.Schema(
       country: String,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const User = mongoose.model("User", userSchema);

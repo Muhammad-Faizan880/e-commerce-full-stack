@@ -9,6 +9,7 @@ import { CheckoutView } from './components/checkout/CheckoutView';
 import { OrderSuccessModal } from './components/checkout/OrderSuccessModal';
 import { AuthView } from './components/auth/AuthView';
 import { AccountView } from './components/auth/AccountView';
+import { ResetPasswordView } from './components/auth/ResetPasswordView';
 import { AdminDashboardView } from './components/admin/AdminDashboardView';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
@@ -52,6 +53,8 @@ export const App: React.FC = () => {
               <Route path="/checkout" element={<CheckoutView />} />
               <Route path="/auth" element={<AuthView />} />
               <Route path="/login" element={<AuthView />} />
+              <Route path="/reset-password" element={<ResetPasswordView />} />
+              <Route path="/reset-password/:token" element={<ResetPasswordView />} />
               <Route path="/success" element={<SuccessPage />} />
 
               {/* Protected User Account Route (Requires logged in user) */}
