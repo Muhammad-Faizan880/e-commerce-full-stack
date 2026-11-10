@@ -48,7 +48,7 @@ export const AuthView: React.FC = () => {
         {/* Dual Column Architecture */}
         <div className="grid grid-cols-1 lg:grid-cols-12 bg-offwhite-surface border border-copen-border shadow-sm overflow-hidden">
           {/* Left Column: Editorial Atmosphere & Heritage */}
-          <div className="lg:col-span-5 bg-olive-900 text-offwhite-50 p-8 sm:p-12 flex flex-col justify-between relative overflow-hidden">
+          <div className="sm:block hidden lg:col-span-5 bg-olive-900 text-offwhite-50 p-8 sm:p-12 flex flex-col justify-between relative overflow-hidden">
             {/* Background Texture & Ambient Light */}
             <div className="absolute inset-0 opacity-15 pointer-events-none mix-blend-overlay">
               <img
@@ -60,7 +60,7 @@ export const AuthView: React.FC = () => {
             <div className="absolute top-0 right-0 w-64 h-64 bg-olive-600/20 rounded-full blur-3xl pointer-events-none" />
 
             {/* Top Branding */}
-            <div className="relative z-10 space-y-4">
+            <div className="relative z-10 space-y-4 ">
               <div className="flex items-center gap-2">
                 <span className="w-2.5 h-2.5 bg-olive-400 rounded-full inline-block" />
                 <span className="text-xs uppercase tracking-[0.25em] text-olive-200 font-medium">

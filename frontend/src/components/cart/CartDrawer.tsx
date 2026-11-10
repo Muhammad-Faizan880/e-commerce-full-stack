@@ -158,7 +158,6 @@ export const CartDrawer: React.FC = () => {
       <div className="mb-4 bg-offwhite-card border border-copen-border p-3 space-y-2">
         <div className="flex items-center justify-between text-[11px]">
           <span className="font-medium text-copen-black flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-olive-600" />
             {freeShippingQualified ? (
               <span className="text-olive-700 font-semibold">
                 ✓ Free White-Glove Shipping unlocked!

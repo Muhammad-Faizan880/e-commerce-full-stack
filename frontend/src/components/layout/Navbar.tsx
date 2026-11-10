@@ -185,8 +185,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <span>My Account & Orders</span>
                   </button>
 
-                  {/* Admin Control Panel shortcut if user.role === 'admin' */}
-                  {user?.role === 'admin' && (
+                  {/* Admin Control Panel shortcut */}
+                  {user?.role === 'admin' ? (
                     <button
                       type="button"
                       onClick={() => {
@@ -197,6 +197,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                     >
                       <ShieldAlert className="w-3.5 h-3.5 text-olive-700" />
                       <span>Admin Control Panel</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate('/admin?preview=true');
+                        setUserDropdown(false);
+                      }}
+                      className="w-full text-left px-4 py-2.5 hover:bg-olive-50/60 text-olive-800 text-[11px] uppercase tracking-wider font-medium transition-colors flex items-center gap-2 border-t border-copen-border/60 cursor-pointer"
+                    >
+                      <ShieldAlert className="w-3.5 h-3.5 text-olive-600" />
+                      <span>Preview Admin Dashboard</span>
                     </button>
                   )}
 

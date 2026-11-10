@@ -37,15 +37,15 @@ export const CheckoutView: React.FC = () => {
 
   // Form State
   const [formData, setFormData] = useState<ShippingAddress>({
-    firstName: user?.firstName || 'Faizan',
-    lastName: user?.lastName || 'Ahmed',
-    email: user?.email || 'faizan@designstudio.com',
-    phone: user?.phone || '+1 (514) 829-4921',
-    address: user?.address || '428 Rue Sainte-Catherine Ouest',
-    apartment: user?.apartment || 'Apt 4B',
-    city: user?.city || 'Montreal',
-    state: user?.state || 'Quebec',
-    postalCode: user?.postalCode || 'H3B 1A6',
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    address: user?.address || '',
+    apartment: user?.apartment || '',
+    city: user?.city || '',
+    state: user?.state || '',
+    postalCode: user?.postalCode || '',
     country: user?.country || 'Canada',
     saveForNextTime: true,
   });
@@ -57,7 +57,7 @@ export const CheckoutView: React.FC = () => {
   // Credit Card mock state
   const [cardData, setCardData] = useState({
     number: '4532 •••• •••• 8821',
-    holder: user ? `${user.firstName} ${user.lastName}`.toUpperCase() : 'FAIZAN AHMED',
+    holder: user ? `${user.firstName} ${user.lastName}`.trim().toUpperCase() : '',
     expiry: '08/28',
     cvv: '392',
   });
@@ -127,6 +127,13 @@ export const CheckoutView: React.FC = () => {
 
     if (cartItems.length === 0) {
       showToast('Your bag has no items', 'error');
+      return;
+    }
+
+    // Step to gate payment: Prompt login / register if not authenticated
+    if (!isAuthenticated) {
+      showToast('Please sign in or register to complete your payment', 'info');
+      openAuthModal('login');
       return;
     }
 
@@ -415,6 +422,34 @@ export const CheckoutView: React.FC = () => {
               </span>
             </div>
 
+            {/* Account requirement banner if guest is about to pay */}
+            {!isAuthenticated && (
+              <div className="bg-olive-50/90 border border-olive-200 p-4 rounded-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-fade-in">
+                <div className="flex items-start sm:items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-olive-700/10 text-olive-800 flex items-center justify-center shrink-0">
+                    <UserIcon className="w-4 h-4 text-olive-700" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-copen-black">
+                      Sign in required for payment
+                    </p>
+                    <p className="text-[11px] text-copen-gray mt-0.5">
+                      Create an account or sign in to finalize payment and record your bespoke order.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={() => openAuthModal('login')}
+                  className="shrink-0 text-xs tracking-wider"
+                >
+                  Sign In / Register
+                </Button>
+              </div>
+            )}
+
             {/* Payment Method Tabs */}
             <div className="grid grid-cols-3 gap-2">
               <button
@@ -534,10 +569,14 @@ export const CheckoutView: React.FC = () => {
               isLoading={isSubmitting}
               className="bg-olive-600 hover:bg-olive-700 text-offwhite-50 text-sm tracking-[0.16em]"
             >
-              Confirm & Complete Acquisition (${total.toFixed(2)} CAD)
+              {isAuthenticated
+                ? `Confirm & Complete Acquisition ($${total.toFixed(2)} CAD)`
+                : `Sign In to Pay & Place Order ($${total.toFixed(2)} CAD)`}
             </Button>
             <p className="text-center text-[11px] text-copen-muted mt-3">
-              By confirming your purchase, you authorize Copenhagen to charge your selected payment method.
+              {isAuthenticated
+                ? 'By confirming your purchase, you authorize Copenhagen to charge your selected payment method.'
+                : 'You will be prompted to sign in or create your Copenhagen account to finalize payment.'}
             </p>
           </div>
         </form>
