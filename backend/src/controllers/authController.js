@@ -349,7 +349,7 @@ export const forgotPassword = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: "Unable to process password reset request",
+      message: error.message || "Unable to process password reset request",
     });
   }
 };

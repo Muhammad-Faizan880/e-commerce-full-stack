@@ -10,6 +10,26 @@ dotenv.config();
 
 const app = express();
 
+// Connect to DB helper
+let isDbConnected = false;
+const ensureDbConnected = async () => {
+  if (!isDbConnected) {
+    await connectDB();
+    isDbConnected = true;
+  }
+};
+
+// Database connection middleware for Serverless & Local
+app.use(async (req, res, next) => {
+  try {
+    await ensureDbConnected();
+    next();
+  } catch (err) {
+    console.error("DB connection error in request:", err);
+    return res.status(500).json({ success: false, message: "Database connection failed" });
+  }
+});
+
 // Middlewares
 app.use(
   cors({
@@ -43,15 +63,6 @@ app.get("/", (req, res) => {
     message: "Copenhagen Scandinavian E-commerce API is active!",
   });
 });
-
-// Connect to DB and listen when not running as serverless function
-let isDbConnected = false;
-const ensureDbConnected = async () => {
-  if (!isDbConnected) {
-    await connectDB();
-    isDbConnected = true;
-  }
-};
 
 if (process.env.NODE_ENV !== "test") {
   ensureDbConnected()
