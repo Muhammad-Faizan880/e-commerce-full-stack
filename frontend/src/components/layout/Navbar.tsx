@@ -44,14 +44,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const navLinks = [
-    { label: 'DEMOS', category: 'all' },
-    { label: 'FEATURES', category: 'seating' },
-    { label: 'SHOP ALL', category: 'all' },
-    { label: 'LIGHTING', category: 'lighting' },
-    { label: 'BEDROOM', category: 'bedroom' },
-    { label: 'JOURNAL', category: 'decor' },
-  ];
+
 
   const handleNavClick = (cat: string) => {
     if (onSelectCategory) {
@@ -96,19 +89,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Center: Desktop Navigation links */}
-          <nav className="hidden lg:flex items-center gap-8">
-            {navLinks.map((link) => (
-              <button
-                key={link.label}
-                onClick={() => handleNavClick(link.category)}
-                className="text-[11px] tracking-[0.16em] uppercase font-medium text-copen-gray hover:text-copen-black transition-colors py-2 relative group"
-              >
-                {link.label}
-                <span className="absolute bottom-0 left-0 w-0 h-[1.5px] bg-olive-600 transition-all duration-200 group-hover:w-full"></span>
-              </button>
-            ))}
-          </nav>
+      
 
           {/* Right: Search, Auth, Cart Bag */}
           <div className="flex items-center gap-4 sm:gap-6">
