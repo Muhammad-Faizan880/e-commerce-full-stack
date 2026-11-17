@@ -11,23 +11,18 @@ dotenv.config();
 
 const app = express();
 
-// Connect to DB helper
-let isDbConnected = false;
-const ensureDbConnected = async () => {
-  if (!isDbConnected) {
-    await connectDB();
-    isDbConnected = true;
-  }
-};
-
 // Database connection middleware for Serverless & Local
 app.use(async (req, res, next) => {
   try {
-    await ensureDbConnected();
+    await connectDB();
     next();
   } catch (err) {
-    console.error("DB connection error in request:", err);
-    return res.status(500).json({ success: false, message: "Database connection failed" });
+    console.error("DB connection error in request:", err.message);
+    return res.status(500).json({
+      success: false,
+      message: "Database connection failed. Please verify MongoDB connection.",
+      error: err.message,
+    });
   }
 });
 
@@ -67,7 +62,7 @@ app.get("/", (req, res) => {
 });
 
 if (process.env.NODE_ENV !== "test") {
-  ensureDbConnected()
+  connectDB()
     .then(() => {
       const PORT = process.env.PORT || 5000;
       app.listen(PORT, () => {
