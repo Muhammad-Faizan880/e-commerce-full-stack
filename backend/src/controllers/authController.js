@@ -289,9 +289,19 @@ export const forgotPassword = async (req, res) => {
 
     await user.save();
 
-    // 6. Generate frontend reset URL (dynamically uses request origin if available)
+    // 6. Generate frontend reset URL
     const requestOrigin = req.get("origin");
-    const frontendBase = requestOrigin || process.env.FRONTEND_URL || process.env.CLIENT_URL || "http://localhost:5173";
+
+    // If request comes from a live domain, use that. Otherwise prefer FRONTEND_URL or live Vercel URL
+    // so reset links always work on mobile phones and external devices (not trapped on localhost).
+    let frontendBase = process.env.FRONTEND_URL || process.env.CLIENT_URL;
+
+    if (requestOrigin && !requestOrigin.includes("localhost")) {
+      frontendBase = requestOrigin;
+    } else if (!frontendBase || frontendBase.includes("localhost")) {
+      frontendBase = "https://full-flow-e-commerce-full-stack.vercel.app";
+    }
+
     const resetURL = `${frontendBase.replace(/\/$/, '')}/reset-password/${resetToken}`;
 
     // 7. Send reset email
