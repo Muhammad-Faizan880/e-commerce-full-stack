@@ -38,6 +38,8 @@ export const getProducts = async (req, res) => {
 
     const products = await Product.find(query).sort(sortOption);
 
+    console.log(`🛋️ [PRODUCTS API] GET /api/products | Filters: category="${category || 'all'}", search="${search || ''}", sort="${sort || 'default'}" -> Returned ${products.length} products`);
+
     return res.status(200).json({
       success: true,
       count: products.length,
@@ -132,6 +134,8 @@ export const createProduct = async (req, res) => {
       inStock: Number(stock || 10) > 0,
     });
 
+    console.log(`✨ [PRODUCT CREATED] ID: ${product._id} | Name: "${product.name}" | Price: $${product.price} | Stock: ${product.stock}`);
+
     return res.status(201).json({
       success: true,
       message: "Product created successfully",
@@ -174,6 +178,8 @@ export const updateProduct = async (req, res) => {
       { new: true, runValidators: true }
     );
 
+    console.log(`✏️ [PRODUCT UPDATED] ID: ${req.params.id} | Updates:`, updates);
+
     return res.status(200).json({
       success: true,
       message: "Product updated successfully",
@@ -203,6 +209,8 @@ export const deleteProduct = async (req, res) => {
         message: "Product not found",
       });
     }
+
+    console.log(`🗑️ [PRODUCT DELETED] ID: ${req.params.id} | Name: "${product.name}"`);
 
     return res.status(200).json({
       success: true,

@@ -25,6 +25,7 @@ import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { getAdminDashboardData } from '../../api/adminApi';
 import { fetchProducts, createProduct, deleteProduct } from '../../api/productApi';
+import { getAllOrdersApi, updateOrderStatusApi, type BackendOrder } from '../../api/orderApi';
 import type { Product } from '../../types/product';
 
 interface BackendStats {
@@ -53,6 +54,8 @@ export const AdminDashboardView: React.FC = () => {
   const [backendStats, setBackendStats] = useState<BackendStats | null>(null);
   const [liveUsers, setLiveUsers] = useState<MongoUser[]>([]);
   const [liveProducts, setLiveProducts] = useState<Product[]>([]);
+  const [liveOrders, setLiveOrders] = useState<BackendOrder[]>([]);
+  const [liveRevenue, setLiveRevenue] = useState<number>(0);
   const [apiError, setApiError] = useState<string | null>(null);
 
   // Add Product Modal State
@@ -76,9 +79,10 @@ export const AdminDashboardView: React.FC = () => {
     try {
       setIsLoading(true);
       setApiError(null);
-      const [res, productsRes] = await Promise.all([
+      const [res, productsRes, ordersRes] = await Promise.all([
         getAdminDashboardData(),
         fetchProducts().catch(() => []),
+        getAllOrdersApi().catch(() => ({ orders: [], totalRevenue: 0 })),
       ]);
 
       if (res?.stats) {
@@ -90,11 +94,27 @@ export const AdminDashboardView: React.FC = () => {
       if (Array.isArray(productsRes) && productsRes.length > 0) {
         setLiveProducts(productsRes);
       }
+      if (ordersRes?.orders && Array.isArray(ordersRes.orders)) {
+        setLiveOrders(ordersRes.orders);
+        setLiveRevenue(ordersRes.totalRevenue || 0);
+      }
     } catch (err: unknown) {
       const errObj = err as { response?: { data?: { message?: string } }; message?: string };
       setApiError(errObj.response?.data?.message || errObj.message || 'Failed to fetch admin data');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
+    try {
+      const updated = await updateOrderStatusApi(orderId, newStatus);
+      setLiveOrders((prev) =>
+        prev.map((o) => (o._id === orderId ? { ...o, status: updated.status } : o))
+      );
+    } catch (err: unknown) {
+      const errObj = err as { response?: { data?: { message?: string } }; message?: string };
+      alert(errObj.response?.data?.message || errObj.message || 'Failed to update order status');
     }
   };
 
@@ -381,9 +401,11 @@ export const AdminDashboardView: React.FC = () => {
               <DollarSign className="w-4 h-4 text-olive-600" />
             </div>
             <div className="space-y-1">
-              <p className="font-serif text-2xl text-copen-black">$54,820 CAD</p>
+              <p className="font-serif text-2xl text-copen-black">
+                {liveRevenue > 0 ? `$${liveRevenue.toFixed(2)} CAD` : '$54,820 CAD'}
+              </p>
               <p className="text-[11px] text-olive-700 flex items-center gap-1 font-medium">
-                <TrendingUp className="w-3 h-3" /> +14.2% from last month
+                <TrendingUp className="w-3 h-3" /> Live revenue calculated from database
               </p>
             </div>
           </div>
@@ -394,9 +416,11 @@ export const AdminDashboardView: React.FC = () => {
               <Package className="w-4 h-4 text-olive-600" />
             </div>
             <div className="space-y-1">
-              <p className="font-serif text-2xl text-copen-black">38 Orders</p>
+              <p className="font-serif text-2xl text-copen-black">
+                {liveOrders.length > 0 ? `${liveOrders.length} Orders` : '38 Orders'}
+              </p>
               <p className="text-[11px] text-copen-gray">
-                4 awaiting workshop packaging
+                {liveOrders.length > 0 ? `${liveOrders.filter((o) => o.status === 'Processing').length} awaiting fulfillment` : '4 awaiting workshop packaging'}
               </p>
             </div>
           </div>
@@ -452,7 +476,7 @@ export const AdminDashboardView: React.FC = () => {
                 : 'text-copen-gray hover:text-copen-black'
             }`}
           >
-            Customer Orders (4)
+            Customer Orders ({liveOrders.length > 0 ? liveOrders.length : demoOrders.length})
             {activeTab === 'orders' && (
               <span className="absolute bottom-0 left-0 w-full h-[2px] bg-olive-600" />
             )}
@@ -523,34 +547,87 @@ export const AdminDashboardView: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-copen-border">
-                  {demoOrders
-                    .filter((o) =>
-                      o.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      o.id.toLowerCase().includes(searchTerm.toLowerCase())
-                    )
-                    .map((order) => (
-                      <tr key={order.id} className="hover:bg-offwhite-hover/60 transition-colors">
-                        <td className="py-3.5 px-4 font-mono font-medium text-copen-black">
-                          {order.id}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <p className="font-medium text-copen-black">{order.customer}</p>
-                          <p className="text-[10px] text-copen-muted">{order.email}</p>
-                        </td>
-                        <td className="py-3.5 px-4 text-copen-gray max-w-xs truncate">
-                          {order.items}
-                        </td>
-                        <td className="py-3.5 px-4 text-copen-muted text-[11px]">
-                          {order.date}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          {getStatusBadge(order.status)}
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-medium text-copen-black">
-                          ${order.total.toFixed(2)} CAD
-                        </td>
-                      </tr>
-                    ))}
+                  {liveOrders.length > 0
+                    ? liveOrders
+                        .filter((o) => {
+                          const clientName = `${o.shippingAddress.firstName} ${o.shippingAddress.lastName}`.toLowerCase();
+                          const term = searchTerm.toLowerCase();
+                          return (
+                            clientName.includes(term) ||
+                            o.orderNumber.toLowerCase().includes(term) ||
+                            o.shippingAddress.email.toLowerCase().includes(term)
+                          );
+                        })
+                        .map((order) => {
+                          const clientName = `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`;
+                          const itemsSummary = order.items.map((i) => `${i.name} (${i.quantity})`).join(', ');
+                          return (
+                            <tr key={order._id} className="hover:bg-offwhite-hover/60 transition-colors">
+                              <td className="py-3.5 px-4 font-mono font-medium text-copen-black">
+                                #{order.orderNumber}
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <p className="font-medium text-copen-black">{clientName}</p>
+                                <p className="text-[10px] text-copen-muted">{order.shippingAddress.email}</p>
+                              </td>
+                              <td className="py-3.5 px-4 text-copen-gray max-w-xs truncate" title={itemsSummary}>
+                                {itemsSummary}
+                              </td>
+                              <td className="py-3.5 px-4 text-copen-muted text-[11px]">
+                                {new Date(order.createdAt).toLocaleDateString()}
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <select
+                                  value={order.status}
+                                  onChange={(e) => handleUpdateOrderStatus(order._id, e.target.value)}
+                                  className={`text-[10px] uppercase tracking-wider font-semibold px-2 py-1 rounded-xs border cursor-pointer focus:outline-none ${
+                                    order.status === 'Delivered'
+                                      ? 'bg-olive-100 text-olive-800 border-olive-300'
+                                      : order.status === 'In Transit'
+                                      ? 'bg-amber-50 text-amber-800 border-amber-300'
+                                      : 'bg-sky-50 text-sky-800 border-sky-300'
+                                  }`}
+                                >
+                                  <option value="Processing">Processing</option>
+                                  <option value="In Transit">In Transit</option>
+                                  <option value="Delivered">Delivered</option>
+                                  <option value="Cancelled">Cancelled</option>
+                                </select>
+                              </td>
+                              <td className="py-3.5 px-4 text-right font-medium text-copen-black">
+                                ${order.total.toFixed(2)} CAD
+                              </td>
+                            </tr>
+                          );
+                        })
+                    : demoOrders
+                        .filter((o) =>
+                          o.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          o.id.toLowerCase().includes(searchTerm.toLowerCase())
+                        )
+                        .map((order) => (
+                          <tr key={order.id} className="hover:bg-offwhite-hover/60 transition-colors">
+                            <td className="py-3.5 px-4 font-mono font-medium text-copen-black">
+                              {order.id}
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <p className="font-medium text-copen-black">{order.customer}</p>
+                              <p className="text-[10px] text-copen-muted">{order.email}</p>
+                            </td>
+                            <td className="py-3.5 px-4 text-copen-gray max-w-xs truncate">
+                              {order.items}
+                            </td>
+                            <td className="py-3.5 px-4 text-copen-muted text-[11px]">
+                              {order.date}
+                            </td>
+                            <td className="py-3.5 px-4">
+                              {getStatusBadge(order.status)}
+                            </td>
+                            <td className="py-3.5 px-4 text-right font-medium text-copen-black">
+                              ${order.total.toFixed(2)} CAD
+                            </td>
+                          </tr>
+                        ))}
                 </tbody>
               </table>
             </div>

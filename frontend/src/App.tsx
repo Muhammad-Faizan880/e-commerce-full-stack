@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import React from 'react';
+import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom';
 import { ToastProvider } from './context/ToastContext';
 import { CartProvider, useCart } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
@@ -15,15 +15,25 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import type { CategoryFilter, Product } from './types/product';
 
-// Shop View wrapper connecting ProductGrid with Cart Context
+// Shop View wrapper connecting ProductGrid with URL & Cart Context
 const ShopPage: React.FC = () => {
-  const [selectedCategory, setSelectedCategory] = useState<CategoryFilter>('all');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlCategory = (searchParams.get('category') as CategoryFilter) || 'all';
   const { setQuickViewProduct } = useCart();
+
+  const handleSelectCategory = (cat: CategoryFilter) => {
+    if (cat === 'all') {
+      searchParams.delete('category');
+      setSearchParams(searchParams);
+    } else {
+      setSearchParams({ ...Object.fromEntries(searchParams), category: cat });
+    }
+  };
 
   return (
     <ProductGrid
-      selectedCategory={selectedCategory}
-      onSelectCategory={setSelectedCategory}
+      selectedCategory={urlCategory}
+      onSelectCategory={handleSelectCategory}
       onQuickView={(p: Product) => setQuickViewProduct(p)}
     />
   );

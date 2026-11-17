@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import type { CartItem, PromoCode } from '../types/cart';
 import type { Product } from '../types/product';
 import type { OrderConfirmation } from '../types/checkout';
-import { PRODUCTS, AVAILABLE_PROMOS } from '../data/products';
+import { AVAILABLE_PROMOS } from '../data/products';
 import { useToast } from './ToastContext';
 
 interface CartContextType {
@@ -38,32 +38,33 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 const FREE_SHIPPING_THRESHOLD = 300; // $300 CAD for free shipping
 
+const CART_STORAGE_KEY = 'copenhagen_cart_items';
+
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { showToast } = useToast();
 
-  // Initial cart seeded with the exact 2 items from the user's uploaded screenshot!
+  // Load user's actual cart from localStorage (starts empty [] if new visitor)
   const [cartItems, setCartItems] = useState<CartItem[]>(() => {
-    const mushroom = PRODUCTS.find((p) => p.id === 'prod-4');
-    const armchair = PRODUCTS.find((p) => p.id === 'prod-5');
-    const initial: CartItem[] = [];
-    if (mushroom) {
-      initial.push({
-        id: `${mushroom.id}-Warm Chalk`,
-        product: mushroom,
-        quantity: 1,
-        selectedColor: 'Warm Chalk',
-      });
+    try {
+      const saved = localStorage.getItem(CART_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {
+      // ignore storage restriction
     }
-    if (armchair) {
-      initial.push({
-        id: `${armchair.id}-Cognac Saddle`,
-        product: armchair,
-        quantity: 1,
-        selectedColor: 'Cognac Saddle',
-      });
-    }
-    return initial;
+    return [];
   });
+
+  // Sync cart changes to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
+    } catch {
+      // ignore
+    }
+  }, [cartItems]);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -121,6 +122,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const color = selectedColor || product.colors?.[0]?.name || 'Standard';
     const itemId = `${product.id}-${color}`;
 
+    console.log(`🛍️ [CART ACTION: ADD ITEM] Adding "${product.name}" | Qty: ${quantity} | Color: ${color}`);
+
     setCartItems((prev) => {
       const existing = prev.find((item) => item.id === itemId);
       if (existing) {
@@ -136,6 +139,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateQuantity = (itemId: string, quantity: number) => {
+    console.log(`🔢 [CART ACTION: UPDATE QTY] ItemId: ${itemId} | New Qty: ${quantity}`);
     if (quantity <= 0) {
       removeItem(itemId);
       return;
@@ -147,6 +151,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const removeItem = (itemId: string) => {
     const target = cartItems.find((i) => i.id === itemId);
+    console.log(`🗑️ [CART ACTION: REMOVE ITEM] ItemId: ${itemId} | Name: ${target?.product.name}`);
     setCartItems((prev) => prev.filter((item) => item.id !== itemId));
     if (target) {
       showToast(`${target.product.name} removed`, 'info');
@@ -154,6 +159,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const clearCart = () => {
+    console.log(`🧹 [CART ACTION: CLEAR CART] Cart emptied`);
     setCartItems([]);
   };
 

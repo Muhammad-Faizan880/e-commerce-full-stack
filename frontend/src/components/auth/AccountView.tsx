@@ -14,6 +14,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
+import { getMyOrdersApi, type BackendOrder } from '../../api/orderApi';
 
 export const AccountView: React.FC = () => {
   const { user, logout, updateProfile, isAuthenticated } = useAuth();
@@ -21,6 +22,7 @@ export const AccountView: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'profile' | 'orders' | 'addresses'>('profile');
   const [isEditing, setIsEditing] = useState(false);
+  const [liveOrders, setLiveOrders] = useState<BackendOrder[]>([]);
 
   // Edit form state
   const [firstName, setFirstName] = useState(user?.firstName || '');
@@ -29,6 +31,16 @@ export const AccountView: React.FC = () => {
   const [address, setAddress] = useState(user?.address || '');
   const [city, setCity] = useState(user?.city || '');
   const [country, setCountry] = useState(user?.country || 'Canada');
+
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      getMyOrdersApi()
+        .then((res) => {
+          if (Array.isArray(res)) setLiveOrders(res);
+        })
+        .catch((err) => console.warn('Could not fetch user orders:', err));
+    }
+  }, [isAuthenticated]);
 
   if (!isAuthenticated || !user) {
     return (
@@ -322,7 +334,67 @@ export const AccountView: React.FC = () => {
         {/* Tab 2: Orders */}
         {activeTab === 'orders' && (
           <div className="space-y-4">
-            {lastOrder ? (
+            {liveOrders.length > 0 ? (
+              liveOrders.map((order) => (
+                <div key={order._id || order.orderNumber} className="bg-offwhite-surface border border-copen-border p-6 rounded-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-copen-border gap-2">
+                    <div>
+                      <span className="text-[10px] uppercase tracking-widest text-olive-700 font-semibold">
+                        Order Ref
+                      </span>
+                      <h3 className="font-serif text-xl text-copen-black">
+                        #{order.orderNumber}
+                      </h3>
+                      <p className="text-[11px] text-copen-gray">
+                        Placed on {new Date(order.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-1 text-[10px] uppercase tracking-widest font-semibold rounded-xs ${
+                        order.status === 'Delivered'
+                          ? 'bg-olive-100 text-olive-800'
+                          : order.status === 'In Transit'
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-sky-50 text-sky-800 border border-sky-200'
+                      }`}>
+                        <CheckCircle2 className="w-3 h-3 text-olive-600" />
+                        {order.status}
+                      </span>
+                      <span className="text-sm font-semibold text-copen-black">
+                        ${order.total.toFixed(2)} CAD
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Items in this order */}
+                  <div className="space-y-3">
+                    {order.items.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between py-2 border-b border-copen-border/40 text-xs"
+                      >
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={item.image}
+                            alt={item.name}
+                            className="w-12 h-12 object-cover rounded-xs border border-copen-border"
+                          />
+                          <div>
+                            <p className="font-medium text-copen-black">{item.name}</p>
+                            <p className="text-[11px] text-copen-muted">
+                              Qty: {item.quantity} • {item.selectedColor || 'Standard'}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="font-medium text-copen-black">
+                          ${(item.price * item.quantity).toFixed(2)} CAD
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))
+            ) : lastOrder ? (
               <div className="bg-offwhite-surface border border-copen-border p-6 rounded-xs space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-copen-border gap-2">
                   <div>

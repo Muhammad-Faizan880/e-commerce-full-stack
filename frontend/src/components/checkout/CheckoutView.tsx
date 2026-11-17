@@ -18,6 +18,7 @@ import type { ShippingAddress, ShippingOption, PaymentMethodType, OrderConfirmat
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
+import { createOrderApi } from '../../api/orderApi';
 
 export const CheckoutView: React.FC = () => {
   const {
@@ -118,7 +119,7 @@ export const CheckoutView: React.FC = () => {
     return Object.keys(errors).length === 0;
   };
 
-  const handlePlaceOrder = (e: React.FormEvent) => {
+  const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) {
       showToast('Please fulfill the necessary shipping fields', 'error');
@@ -137,13 +138,39 @@ export const CheckoutView: React.FC = () => {
       return;
     }
 
-    setIsSubmitting(true);
+    try {
+      setIsSubmitting(true);
 
-    setTimeout(() => {
-      const orderId = `#CPH-${Math.floor(100000 + Math.random() * 900000)}`;
+      const itemsPayload = cartItems.map((item) => ({
+        productId: item.product.id || (item.product as unknown as { _id?: string })._id,
+        name: item.product.name,
+        image: item.product.gallery?.[0] || item.product.image,
+        price: item.product.price,
+        quantity: item.quantity,
+        selectedColor: item.selectedColor,
+      }));
+
+      const orderPayload = {
+        items: itemsPayload,
+        shippingAddress: formData,
+        shippingOption: { ...selectedShipping, price: shippingCost },
+        paymentMethod,
+        subtotal,
+        discount: discountAmount,
+        shippingFee: shippingCost,
+        tax,
+        total,
+      };
+
+      console.log('📦 [CHECKOUT FLOW] Submitting Order Payload to Backend:', orderPayload);
+
+      const backendOrder = await createOrderApi(orderPayload);
+
+      console.log('🎉 [CHECKOUT SUCCESS] Order Created in MongoDB:', backendOrder);
+
       const confirmation: OrderConfirmation = {
-        orderId,
-        orderDate: new Date().toLocaleDateString('en-US', {
+        orderId: backendOrder.orderNumber,
+        orderDate: new Date(backendOrder.createdAt).toLocaleDateString('en-US', {
           year: 'numeric',
           month: 'long',
           day: 'numeric',
@@ -162,10 +189,19 @@ export const CheckoutView: React.FC = () => {
 
       setLastOrder(confirmation);
       clearCart();
-      setIsSubmitting(false);
       setCurrentView('success');
-      showToast(`Order ${orderId} successfully placed!`, 'success');
-    }, 1200);
+      showToast(`Order ${backendOrder.orderNumber} successfully placed!`, 'success');
+    } catch (err: unknown) {
+      const apiErr = err as { response?: { data?: { message?: string } }; message?: string };
+      showToast(
+        apiErr.response?.data?.message ||
+          apiErr.message ||
+          'Failed to place order. Please try again.',
+        'error'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleApplyPromo = (e: React.FormEvent) => {
