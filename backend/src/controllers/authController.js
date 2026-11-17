@@ -289,8 +289,9 @@ export const forgotPassword = async (req, res) => {
 
     await user.save();
 
-    // 6. Generate frontend reset URL
-    const frontendBase = process.env.FRONTEND_URL || process.env.CLIENT_URL || "http://localhost:5173";
+    // 6. Generate frontend reset URL (dynamically uses request origin if available)
+    const requestOrigin = req.get("origin");
+    const frontendBase = requestOrigin || process.env.FRONTEND_URL || process.env.CLIENT_URL || "http://localhost:5173";
     const resetURL = `${frontendBase.replace(/\/$/, '')}/reset-password/${resetToken}`;
 
     // 7. Send reset email
