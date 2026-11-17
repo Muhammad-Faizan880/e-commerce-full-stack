@@ -16,11 +16,17 @@ import {
   Sparkles,
   RefreshCw,
   Database,
+  Trash2,
+  Plus,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { Button } from '../ui/Button';
+import { Modal } from '../ui/Modal';
+import { Input } from '../ui/Input';
 import { getAdminDashboardData } from '../../api/adminApi';
+import { fetchProducts, createProduct, deleteProduct } from '../../api/productApi';
+import type { Product } from '../../types/product';
 
 interface BackendStats {
   totalUsers: number;
@@ -47,24 +53,115 @@ export const AdminDashboardView: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [backendStats, setBackendStats] = useState<BackendStats | null>(null);
   const [liveUsers, setLiveUsers] = useState<MongoUser[]>([]);
+  const [liveProducts, setLiveProducts] = useState<Product[]>([]);
   const [apiError, setApiError] = useState<string | null>(null);
+
+  // Add Product Modal State
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isSubmittingProduct, setIsSubmittingProduct] = useState(false);
+  const [productForm, setProductForm] = useState({
+    name: '',
+    subtitle: '',
+    category: 'seating' as 'seating' | 'lighting' | 'tables' | 'bedroom' | 'decor',
+    price: '',
+    compareAtPrice: '',
+    stock: '10',
+    image: '',
+    description: '',
+    material: 'European Solid Oak & Natural Textiles',
+    dimensions: '',
+    badge: '' as '' | 'COPENHAGEN ALMOND' | 'SALE' | 'NEW ARRIVAL' | 'BESTSELLER',
+  });
 
   const fetchDashboardData = async () => {
     try {
       setIsLoading(true);
       setApiError(null);
-      const res = await getAdminDashboardData();
+      const [res, productsRes] = await Promise.all([
+        getAdminDashboardData(),
+        fetchProducts().catch(() => []),
+      ]);
+
       if (res?.stats) {
         setBackendStats(res.stats);
       }
       if (res?.recentUsers) {
         setLiveUsers(res.recentUsers);
       }
+      if (Array.isArray(productsRes) && productsRes.length > 0) {
+        setLiveProducts(productsRes);
+      }
     } catch (err: unknown) {
       const errObj = err as { response?: { data?: { message?: string } }; message?: string };
       setApiError(errObj.response?.data?.message || errObj.message || 'Failed to fetch admin data');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCreateProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!productForm.name || !productForm.price || !productForm.image || !productForm.description) {
+      alert('Please fill all required fields (Name, Price, Image URL, Description)');
+      return;
+    }
+
+    try {
+      setIsSubmittingProduct(true);
+      const newProd = await createProduct({
+        name: productForm.name,
+        subtitle: productForm.subtitle,
+        category: productForm.category,
+        categoryLabel: `${productForm.category.charAt(0).toUpperCase() + productForm.category.slice(1)} Living`,
+        price: parseFloat(productForm.price),
+        compareAtPrice: productForm.compareAtPrice ? parseFloat(productForm.compareAtPrice) : undefined,
+        stock: parseInt(productForm.stock, 10) || 10,
+        image: productForm.image,
+        gallery: [productForm.image],
+        description: productForm.description,
+        material: productForm.material,
+        dimensions: productForm.dimensions,
+        badge: productForm.badge || undefined,
+        rating: 5.0,
+        reviewsCount: 1,
+        inStock: true,
+      });
+
+      setLiveProducts((prev) => [newProd, ...prev]);
+      setIsAddModalOpen(false);
+      setProductForm({
+        name: '',
+        subtitle: '',
+        category: 'seating',
+        price: '',
+        compareAtPrice: '',
+        stock: '10',
+        image: '',
+        description: '',
+        material: 'European Solid Oak & Natural Textiles',
+        dimensions: '',
+        badge: '',
+      });
+      alert('Product created successfully in MongoDB!');
+    } catch (err: unknown) {
+      const errObj = err as { response?: { data?: { message?: string } }; message?: string };
+      alert(errObj.response?.data?.message || errObj.message || 'Failed to create product');
+    } finally {
+      setIsSubmittingProduct(false);
+    }
+  };
+
+  const handleDeleteProduct = async (productId: string, productName: string) => {
+    if (!window.confirm(`Are you sure you want to remove "${productName}" from the catalog?`)) {
+      return;
+    }
+
+    try {
+      await deleteProduct(productId);
+      setLiveProducts((prev) => prev.filter((p) => (p.id || (p as unknown as { _id?: string })._id) !== productId));
+    } catch (err: unknown) {
+      const errObj = err as { response?: { data?: { message?: string } }; message?: string };
+      alert(errObj.response?.data?.message || errObj.message || 'Failed to delete product');
     }
   };
 
@@ -335,9 +432,11 @@ export const AdminDashboardView: React.FC = () => {
               <ShoppingBag className="w-4 h-4 text-olive-600" />
             </div>
             <div className="space-y-1">
-              <p className="font-serif text-2xl text-copen-black">24 Pieces</p>
+              <p className="font-serif text-2xl text-copen-black">
+                {liveProducts.length > 0 ? `${liveProducts.length} Pieces` : '9 Pieces'}
+              </p>
               <p className="text-[11px] text-amber-700 font-medium">
-                2 items running low in stock
+                {liveProducts.filter((p) => (p as unknown as { stock?: number }).stock !== undefined && (p as unknown as { stock?: number }).stock! < 5).length} items running low in stock
               </p>
             </div>
           </div>
@@ -369,7 +468,7 @@ export const AdminDashboardView: React.FC = () => {
                 : 'text-copen-gray hover:text-copen-black'
             }`}
           >
-            Product Catalog (4)
+            Product Catalog ({liveProducts.length > 0 ? liveProducts.length : demoProducts.length})
             {activeTab === 'products' && (
               <span className="absolute bottom-0 left-0 w-full h-[2px] bg-olive-600" />
             )}
@@ -463,58 +562,124 @@ export const AdminDashboardView: React.FC = () => {
         {activeTab === 'products' && (
           <div className="bg-offwhite-surface border border-copen-border overflow-hidden rounded-xs">
             <div className="p-4 border-b border-copen-border flex items-center justify-between">
-              <h3 className="text-xs uppercase tracking-widest font-semibold text-copen-black">
-                Active Catalog Pieces
-              </h3>
-              <Button variant="primary" size="sm">
-                + Add New Piece
+              <div>
+                <h3 className="text-xs uppercase tracking-widest font-semibold text-copen-black">
+                  Active Catalog Pieces ({liveProducts.length > 0 ? liveProducts.length : demoProducts.length})
+                </h3>
+                <p className="text-[11px] text-copen-gray mt-0.5">
+                  Live synchronized inventory managed in MongoDB
+                </p>
+              </div>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => setIsAddModalOpen(true)}
+                leftIcon={<Plus className="w-3.5 h-3.5" />}
+              >
+                Add New Piece
               </Button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-offwhite-card border-b border-copen-border text-[10px] uppercase tracking-widest text-copen-gray">
                   <tr>
-                    <th className="py-3 px-4">SKU</th>
-                    <th className="py-3 px-4">Design Item</th>
+                    <th className="py-3 px-4">Item</th>
                     <th className="py-3 px-4">Category</th>
-                    <th className="py-3 px-4">Stock Qty</th>
+                    <th className="py-3 px-4">Stock</th>
                     <th className="py-3 px-4">Status</th>
                     <th className="py-3 px-4 text-right">Price</th>
+                    <th className="py-3 px-4 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-copen-border">
-                  {demoProducts.map((p) => (
-                    <tr key={p.sku} className="hover:bg-offwhite-hover/60 transition-colors">
-                      <td className="py-3.5 px-4 font-mono text-[11px] text-copen-muted">
-                        {p.sku}
-                      </td>
-                      <td className="py-3.5 px-4 font-medium text-copen-black">
-                        {p.name}
-                      </td>
-                      <td className="py-3.5 px-4 text-copen-gray uppercase tracking-wider text-[10px]">
-                        {p.category}
-                      </td>
-                      <td className="py-3.5 px-4 font-mono">
-                        {p.stock} units
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span
-                          className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-xs font-medium ${
-                            p.status === 'In Stock'
-                              ? 'bg-olive-100 text-olive-800'
-                              : p.status === 'Low Stock'
-                              ? 'bg-amber-100 text-amber-800'
-                              : 'bg-rose-100 text-rose-800'
-                          }`}
-                        >
-                          {p.status}
-                        </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-right font-medium text-copen-black">
-                        ${p.price.toFixed(2)} CAD
-                      </td>
-                    </tr>
-                  ))}
+                  {liveProducts.length > 0 ? (
+                    liveProducts.map((p) => {
+                      const prodId = p.id || (p as unknown as { _id?: string })._id || '';
+                      const stockVal = (p as unknown as { stock?: number }).stock ?? (p.inStock ? 10 : 0);
+                      return (
+                        <tr key={prodId} className="hover:bg-offwhite-hover/60 transition-colors">
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={p.image}
+                                alt={p.name}
+                                className="w-9 h-9 object-cover rounded-xs border border-copen-border shrink-0"
+                              />
+                              <div>
+                                <p className="font-medium text-copen-black">{p.name}</p>
+                                <p className="text-[10px] text-copen-muted truncate max-w-xs">{p.subtitle || p.material}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-copen-gray uppercase tracking-wider text-[10px]">
+                            {p.category}
+                          </td>
+                          <td className="py-3 px-4 font-mono">
+                            {stockVal} units
+                          </td>
+                          <td className="py-3 px-4">
+                            <span
+                              className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-xs font-medium ${
+                                stockVal > 5
+                                  ? 'bg-olive-100 text-olive-800'
+                                  : stockVal > 0
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : 'bg-rose-100 text-rose-800'
+                              }`}
+                            >
+                              {stockVal > 5 ? 'In Stock' : stockVal > 0 ? 'Low Stock' : 'Out of Stock'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right font-medium text-copen-black">
+                            ${p.price.toFixed(2)} CAD
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteProduct(prodId, p.name)}
+                              className="text-rose-600 hover:text-rose-800 transition-colors p-1"
+                              title="Delete from Catalog"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    demoProducts.map((p) => (
+                      <tr key={p.sku} className="hover:bg-offwhite-hover/60 transition-colors">
+                        <td className="py-3.5 px-4 font-medium text-copen-black">
+                          {p.name}
+                        </td>
+                        <td className="py-3.5 px-4 text-copen-gray uppercase tracking-wider text-[10px]">
+                          {p.category}
+                        </td>
+                        <td className="py-3.5 px-4 font-mono">
+                          {p.stock} units
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span
+                            className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-xs font-medium ${
+                              p.status === 'In Stock'
+                                ? 'bg-olive-100 text-olive-800'
+                                : p.status === 'Low Stock'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-rose-100 text-rose-800'
+                            }`}
+                          >
+                            {p.status}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-medium text-copen-black">
+                          ${p.price.toFixed(2)} CAD
+                        </td>
+                        <td className="py-3.5 px-4 text-right text-copen-muted text-[11px]">
+                          Demo
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -614,6 +779,199 @@ export const AdminDashboardView: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Add Product Modal */}
+        <Modal
+          isOpen={isAddModalOpen}
+          onClose={() => setIsAddModalOpen(false)}
+          title="Add New Scandinavian Piece"
+          subtitle="Publish a new design item directly to Copenhagen MongoDB catalog"
+          maxWidth="2xl"
+        >
+          <form onSubmit={handleCreateProduct} className="space-y-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[11px] uppercase tracking-wider text-copen-gray font-medium mb-1">
+                  Design Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Kruso Lounge Chair"
+                  value={productForm.name}
+                  onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                  className="w-full bg-offwhite border border-copen-border px-3 py-2 text-copen-black focus:outline-none focus:border-olive-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] uppercase tracking-wider text-copen-gray font-medium mb-1">
+                  Category *
+                </label>
+                <select
+                  value={productForm.category}
+                  onChange={(e) => setProductForm({ ...productForm, category: e.target.value as any })}
+                  className="w-full bg-offwhite border border-copen-border px-3 py-2 text-copen-black focus:outline-none focus:border-olive-600 cursor-pointer"
+                >
+                  <option value="seating">Lounge Seating</option>
+                  <option value="lighting">Lighting</option>
+                  <option value="tables">Tables & Benches</option>
+                  <option value="bedroom">Bedroom</option>
+                  <option value="decor">Decor & Storage</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] uppercase tracking-wider text-copen-gray font-medium mb-1">
+                Subtitle / Short Headline
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Solid European white oak with olive wool weave"
+                value={productForm.subtitle}
+                onChange={(e) => setProductForm({ ...productForm, subtitle: e.target.value })}
+                className="w-full bg-offwhite border border-copen-border px-3 py-2 text-copen-black focus:outline-none focus:border-olive-600"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-[11px] uppercase tracking-wider text-copen-gray font-medium mb-1">
+                  Price ($ CAD) *
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  required
+                  placeholder="180.00"
+                  value={productForm.price}
+                  onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
+                  className="w-full bg-offwhite border border-copen-border px-3 py-2 text-copen-black focus:outline-none focus:border-olive-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] uppercase tracking-wider text-copen-gray font-medium mb-1">
+                  Compare Price ($ CAD)
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder="220.00"
+                  value={productForm.compareAtPrice}
+                  onChange={(e) => setProductForm({ ...productForm, compareAtPrice: e.target.value })}
+                  className="w-full bg-offwhite border border-copen-border px-3 py-2 text-copen-black focus:outline-none focus:border-olive-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] uppercase tracking-wider text-copen-gray font-medium mb-1">
+                  Stock Units *
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  required
+                  placeholder="10"
+                  value={productForm.stock}
+                  onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
+                  className="w-full bg-offwhite border border-copen-border px-3 py-2 text-copen-black focus:outline-none focus:border-olive-600"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[11px] uppercase tracking-wider text-copen-gray font-medium mb-1">
+                Image URL * (Unsplash, CDN, or Cloudinary link)
+              </label>
+              <input
+                type="url"
+                required
+                placeholder="https://images.unsplash.com/photo-..."
+                value={productForm.image}
+                onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
+                className="w-full bg-offwhite border border-copen-border px-3 py-2 text-copen-black focus:outline-none focus:border-olive-600 font-mono text-[11px]"
+              />
+              {productForm.image && (
+                <div className="mt-2 flex items-center gap-3 p-2 bg-offwhite border border-copen-border rounded-xs">
+                  <img
+                    src={productForm.image}
+                    alt="Preview"
+                    className="w-12 h-12 object-cover rounded-xs border border-copen-border"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                  <span className="text-[11px] text-copen-muted">Image preview validated</span>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-[11px] uppercase tracking-wider text-copen-gray font-medium mb-1">
+                Description & Craft Story *
+              </label>
+              <textarea
+                required
+                rows={3}
+                placeholder="Sculptural comfort rooted in Nordic heritage..."
+                value={productForm.description}
+                onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                className="w-full bg-offwhite border border-copen-border px-3 py-2 text-copen-black focus:outline-none focus:border-olive-600"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[11px] uppercase tracking-wider text-copen-gray font-medium mb-1">
+                  Material
+                </label>
+                <input
+                  type="text"
+                  placeholder="Solid White Oak, Danish Wool"
+                  value={productForm.material}
+                  onChange={(e) => setProductForm({ ...productForm, material: e.target.value })}
+                  className="w-full bg-offwhite border border-copen-border px-3 py-2 text-copen-black focus:outline-none focus:border-olive-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] uppercase tracking-wider text-copen-gray font-medium mb-1">
+                  Dimensions
+                </label>
+                <input
+                  type="text"
+                  placeholder="W 74cm × D 82cm × H 76cm"
+                  value={productForm.dimensions}
+                  onChange={(e) => setProductForm({ ...productForm, dimensions: e.target.value })}
+                  className="w-full bg-offwhite border border-copen-border px-3 py-2 text-copen-black focus:outline-none focus:border-olive-600"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-copen-border">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsAddModalOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                size="sm"
+                isLoading={isSubmittingProduct}
+              >
+                Publish to Catalog
+              </Button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </div>
   );

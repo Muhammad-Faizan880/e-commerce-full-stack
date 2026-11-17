@@ -240,17 +240,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
             </span>
           </label>
 
-          <label className="flex items-start gap-2.5 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={subscribeNewsletter}
-              onChange={(e) => setSubscribeNewsletter(e.target.checked)}
-              className="mt-0.5 w-4 h-4 rounded-xs border-copen-border text-olive-600 focus:ring-olive-600/30 accent-olive-600 cursor-pointer"
-            />
-            <span className="text-xs text-copen-gray leading-tight">
-              Subscribe to the Copenhagen Journal for architecture stories & member-only drops.
-            </span>
-          </label>
+       
         </div>
 
         {/* Submit Button */}

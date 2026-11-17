@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import { ChevronDown, Search, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronDown, Search, X, Loader2 } from 'lucide-react';
 import { PRODUCTS } from '../../data/products';
+import { fetchProducts } from '../../api/productApi';
 import type { Product, CategoryFilter, SortOption } from '../../types/product';
 import { ProductCard } from './ProductCard';
 
@@ -15,6 +16,8 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   selectedCategory,
   onSelectCategory,
 }) => {
+  const [products, setProducts] = useState<Product[]>(PRODUCTS);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortOption, setSortOption] = useState<SortOption>('featured');
   const [showSearchInput, setShowSearchInput] = useState(false);
@@ -28,51 +31,57 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     { id: 'decor', label: 'Decor & Storage' },
   ];
 
-  const filteredProducts = useMemo(() => {
-    let result = [...PRODUCTS];
+  // Fetch live products from backend MongoDB with fallback to static array
+  useEffect(() => {
+    let isMounted = true;
 
-    // Filter by Category
-    if (selectedCategory !== 'all') {
-      result = result.filter((p) => p.category === selectedCategory);
-    }
-
-    // Filter by Search
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
-          p.categoryLabel.toLowerCase().includes(q)
-      );
-    }
-
-    // Sort
-    switch (sortOption) {
-      case 'price-asc':
-        result.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-desc':
-        result.sort((a, b) => b.price - a.price);
-        break;
-      case 'rating':
-        result.sort((a, b) => b.rating - a.rating);
-        break;
-      case 'newest':
-        result.sort((a, b) => {
-          if (a.badge === 'NEW ARRIVAL' && b.badge !== 'NEW ARRIVAL') return -1;
-          if (b.badge === 'NEW ARRIVAL' && a.badge !== 'NEW ARRIVAL') return 1;
-          return 0;
+    const loadProducts = async () => {
+      try {
+        setIsLoading(true);
+        const liveProducts = await fetchProducts({
+          category: selectedCategory,
+          search: searchQuery.trim() || undefined,
+          sort: sortOption,
         });
-        break;
-      case 'featured':
-      default:
-        // natural featured order
-        break;
-    }
 
-    return result;
+        if (isMounted && Array.isArray(liveProducts) && liveProducts.length > 0) {
+          setProducts(liveProducts);
+        }
+      } catch (err) {
+        console.warn('Backend fetch failed or offline; using local catalog fallback:', err);
+        // Fallback to static PRODUCTS filtered locally
+        if (isMounted) {
+          let fallback = [...PRODUCTS];
+          if (selectedCategory !== 'all') {
+            fallback = fallback.filter((p) => p.category === selectedCategory);
+          }
+          if (searchQuery.trim()) {
+            const q = searchQuery.toLowerCase();
+            fallback = fallback.filter(
+              (p) =>
+                p.name.toLowerCase().includes(q) ||
+                p.description.toLowerCase().includes(q) ||
+                p.categoryLabel.toLowerCase().includes(q)
+            );
+          }
+          setProducts(fallback);
+        }
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      loadProducts();
+    }, 200);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, [selectedCategory, searchQuery, sortOption]);
+
+  const totalCount = products.length;
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
@@ -121,8 +130,9 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
 
           {/* Counts and Sort Bar matching image */}
           <div className="flex items-center justify-between lg:justify-end gap-6 w-full lg:w-auto text-[11px] uppercase tracking-wider text-copen-gray">
-            <span className="font-medium text-copen-muted">
-              SHOWING {filteredProducts.length} OF {PRODUCTS.length} PRODUCTS
+            <span className="font-medium text-copen-muted flex items-center gap-1.5">
+              {isLoading && <Loader2 className="w-3 h-3 animate-spin text-olive-600" />}
+              <span>SHOWING {totalCount} PIECES</span>
             </span>
 
             <div className="flex items-center gap-4">
@@ -183,7 +193,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
       </div>
 
       {/* Product Grid - Exactly matching layout and spacing */}
-      {filteredProducts.length === 0 ? (
+      {products.length === 0 ? (
         <div className="text-center py-20 bg-offwhite-card/40 border border-dashed border-copen-border">
           <p className="font-serif font-bold text-2xl text-copen-black">No offerings found</p>
           <p className="text-xs text-copen-muted mt-2">
@@ -202,9 +212,9 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-12">
-          {filteredProducts.map((product) => (
+          {products.map((product) => (
             <ProductCard
-              key={product.id}
+              key={product.id || (product as unknown as { _id?: string })._id}
               product={product}
               onQuickView={onQuickView}
             />
