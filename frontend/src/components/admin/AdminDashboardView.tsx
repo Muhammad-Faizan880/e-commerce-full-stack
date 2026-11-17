@@ -23,7 +23,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
-import { Input } from '../ui/Input';
 import { getAdminDashboardData } from '../../api/adminApi';
 import { fetchProducts, createProduct, deleteProduct } from '../../api/productApi';
 import type { Product } from '../../types/product';

@@ -15,6 +15,7 @@ export interface Product {
   material: string;
   dimensions: string;
   colors?: { name: string; hex: string }[];
+  stock?: number;
   inStock: boolean;
 }
 

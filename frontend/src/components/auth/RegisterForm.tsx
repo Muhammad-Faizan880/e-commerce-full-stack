@@ -21,7 +21,6 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
-  const [subscribeNewsletter, setSubscribeNewsletter] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -72,7 +71,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({
       password,
       confirmPassword,
       agreeTerms,
-      subscribeNewsletter,
+      subscribeNewsletter: false,
     });
     setIsLoading(false);
 
