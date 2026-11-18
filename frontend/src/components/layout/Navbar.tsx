@@ -46,13 +46,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
 
 
-  const navLinks = [
-    { label: 'ALL PIECES', category: 'all' },
-    { label: 'SEATING', category: 'seating' },
-    { label: 'LIGHTING', category: 'lighting' },
-    { label: 'BEDROOM', category: 'bedroom' },
-    { label: 'DECOR', category: 'decor' },
-  ];
+ 
 
   const handleNavClick = (cat: string) => {
     navigate(`/?category=${cat}`);
@@ -95,20 +89,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Center: Desktop Navigation links */}
-          <nav className="hidden lg:flex items-center gap-7">
-            {navLinks.map((link) => (
-              <button
-                key={link.label}
-                type="button"
-                onClick={() => handleNavClick(link.category)}
-                className="text-[11px] tracking-[0.16em] uppercase font-medium text-copen-gray hover:text-copen-black transition-colors py-2 relative group cursor-pointer"
-              >
-                {link.label}
-                <span className="absolute bottom-0 left-0 w-0 h-[1.5px] bg-olive-600 transition-all duration-200 group-hover:w-full"></span>
-              </button>
-            ))}
-          </nav>
 
           {/* Right: Search, Auth, Cart Bag */}
           <div className="flex items-center gap-4 sm:gap-6">
@@ -313,17 +293,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </div>
 
-          <div className="flex flex-col space-y-3">
-            {navLinks.map((link) => (
-              <button
-                key={link.label}
-                onClick={() => handleNavClick(link.category)}
-                className="text-left text-xs tracking-widest uppercase font-medium text-copen-black py-2 border-b border-copen-border/40 hover:text-olive-700"
-              >
-                {link.label}
-              </button>
-            ))}
-          </div>
+       
         </div>
       )}
     </header>
