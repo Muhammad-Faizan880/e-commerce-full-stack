@@ -48,13 +48,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
  
 
-  const handleNavClick = (cat: string) => {
-    navigate(`/?category=${cat}`);
-    if (onSelectCategory) {
-      onSelectCategory(cat);
-    }
-    setMobileMenuOpen(false);
-  };
+
 
   return (
     <header className="sticky top-0 z-40 bg-offwhite/95 backdrop-blur-md border-b border-copen-border transition-all">
