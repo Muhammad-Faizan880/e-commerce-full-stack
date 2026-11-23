@@ -18,13 +18,16 @@ import {
   Database,
   Trash2,
   Plus,
+  Upload,
+  ImageIcon,
+  Loader2,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { getAdminDashboardData } from '../../api/adminApi';
-import { fetchProducts, createProduct, deleteProduct } from '../../api/productApi';
+import { fetchProducts, createProduct, deleteProduct, uploadProductImage } from '../../api/productApi';
 import { getAllOrdersApi, updateOrderStatusApi, type BackendOrder } from '../../api/orderApi';
 import type { Product } from '../../types/product';
 
@@ -74,6 +77,36 @@ export const AdminDashboardView: React.FC = () => {
     dimensions: '',
     badge: '' as '' | 'COPENHAGEN ALMOND' | 'SALE' | 'NEW ARRIVAL' | 'BESTSELLER',
   });
+
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Please select a valid image file (PNG, JPG, WEBP)');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('Image size exceeds 5MB limit');
+      return;
+    }
+
+    try {
+      setIsUploadingImage(true);
+      setUploadError(null);
+      const uploadedUrl = await uploadProductImage(file);
+      setProductForm((prev) => ({ ...prev, image: uploadedUrl }));
+    } catch (err: unknown) {
+      const errObj = err as { response?: { data?: { message?: string } }; message?: string };
+      setUploadError(errObj.response?.data?.message || errObj.message || 'Image upload to Cloudinary failed');
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -959,29 +992,84 @@ export const AdminDashboardView: React.FC = () => {
               </div>
             </div>
 
-            <div>
-              <label className="block text-[11px] uppercase tracking-wider text-copen-gray font-medium mb-1">
-                Image URL * (Unsplash, CDN, or Cloudinary link)
+            {/* Product Image Selection: Cloudinary Upload or Direct URL */}
+            <div className="space-y-2">
+              <label className="block text-[11px] uppercase tracking-wider text-copen-gray font-medium">
+                Product Image * (Upload to Cloudinary or Paste URL)
               </label>
-              <input
-                type="url"
-                required
-                placeholder="https://images.unsplash.com/photo-..."
-                value={productForm.image}
-                onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
-                className="w-full bg-offwhite border border-copen-border px-3 py-2 text-copen-black focus:outline-none focus:border-olive-600 font-mono text-[11px]"
-              />
+
+              {/* Direct File Upload to Cloudinary */}
+              <div className="border border-dashed border-copen-border p-4 bg-offwhite hover:bg-offwhite-hover transition-colors rounded-xs text-center">
+                <input
+                  type="file"
+                  id="product-image-file"
+                  accept="image/png, image/jpeg, image/webp"
+                  onChange={handleImageFileChange}
+                  disabled={isUploadingImage}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="product-image-file"
+                  className="cursor-pointer flex flex-col items-center justify-center gap-1.5"
+                >
+                  {isUploadingImage ? (
+                    <div className="flex items-center gap-2 text-olive-700 py-2">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span className="text-xs font-medium">Uploading to Cloudinary...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="w-8 h-8 rounded-full bg-olive-50 border border-olive-200 flex items-center justify-center text-olive-700">
+                        <Upload className="w-4 h-4" />
+                      </div>
+                      <span className="text-xs font-medium text-copen-black">
+                        Click to upload piece from Computer
+                      </span>
+                      <span className="text-[10px] text-copen-muted">
+                        PNG, JPG, or WEBP up to 5MB (Uploaded to Cloudinary CDN)
+                      </span>
+                    </>
+                  )}
+                </label>
+              </div>
+
+              {uploadError && (
+                <p className="text-[11px] text-rose-600 font-medium">⚠️ {uploadError}</p>
+              )}
+
+              {/* URL input fallback */}
+              <div className="pt-1">
+                <span className="text-[10px] uppercase tracking-wider text-copen-muted block mb-1">
+                  Or paste direct image URL:
+                </span>
+                <input
+                  type="url"
+                  required
+                  placeholder="https://images.unsplash.com/... or https://res.cloudinary.com/..."
+                  value={productForm.image}
+                  onChange={(e) => setProductForm({ ...productForm, image: e.target.value })}
+                  className="w-full bg-offwhite border border-copen-border px-3 py-2 text-copen-black focus:outline-none focus:border-olive-600 font-mono text-[11px]"
+                />
+              </div>
+
               {productForm.image && (
-                <div className="mt-2 flex items-center gap-3 p-2 bg-offwhite border border-copen-border rounded-xs">
+                <div className="mt-2 flex items-center gap-3 p-2 bg-offwhite-card border border-copen-border rounded-xs">
                   <img
                     src={productForm.image}
                     alt="Preview"
-                    className="w-12 h-12 object-cover rounded-xs border border-copen-border"
+                    className="w-14 h-14 object-cover rounded-xs border border-copen-border"
                     onError={(e) => {
                       (e.target as HTMLElement).style.display = 'none';
                     }}
                   />
-                  <span className="text-[11px] text-copen-muted">Image preview validated</span>
+                  <div className="text-[11px] space-y-0.5 overflow-hidden">
+                    <p className="text-emerald-700 font-medium flex items-center gap-1">
+                      <ImageIcon className="w-3.5 h-3.5" /> Image attached successfully
+                    </p>
+                    <p className="text-copen-muted truncate max-w-xs text-[10px] font-mono">
+                      {productForm.image}
+                    </p>
+                  </div>
                 </div>
               )}
             </div>

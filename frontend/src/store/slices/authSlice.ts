@@ -100,7 +100,7 @@ export const loginUserThunk = createAsyncThunk<
       // storage unavailable
     }
 
-    console.log(`🔐 [AUTH REDUX: LOGIN] Successfully logged in as: ${user.name} (${user.email}) | Role: ${user.role}`);
+    console.log(` [AUTH REDUX: LOGIN] Successfully logged in as: ${user.name} (${user.email}) | Role: ${user.role}`);
 
     return user;
   } catch (err: unknown) {

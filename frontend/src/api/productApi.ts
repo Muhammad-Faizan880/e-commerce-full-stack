@@ -91,3 +91,23 @@ export const deleteProduct = async (
   );
   return response.data;
 };
+
+/**
+ * Admin: Upload product image to Cloudinary via backend API
+ */
+export const uploadProductImage = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append("image", file);
+
+  const response = await api.post<{ success: boolean; url: string }>(
+    "/upload",
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
+  return response.data.url;
+};
+
