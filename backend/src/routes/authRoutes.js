@@ -3,6 +3,7 @@ import express from "express";
 import {
   registerUser,
   loginUser,
+  refreshAccessToken,
   forgotPassword,
   resetPassword,
 } from "../controllers/authController.js";
@@ -14,6 +15,9 @@ router.post("/register", registerUser);
 
 // POST /api/auth/login
 router.post("/login", loginUser);
+
+// POST /api/auth/refresh-token (Silent Auto-Renewal)
+router.post("/refresh-token", refreshAccessToken);
 
 // POST /api/auth/forgot-password
 router.post("/forgot-password", forgotPassword);

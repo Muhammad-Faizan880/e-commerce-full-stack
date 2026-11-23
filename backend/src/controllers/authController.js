@@ -201,11 +201,11 @@ console.log("PASSWORD EXISTS:", !!user?.password);
       device: req.get("user-agent") || "Unknown",
     });
 
-    // 10. Set refresh token cookie
+    // 10. Set refresh token cookie (Supporting both local & cross-domain production)
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       expires: expiresAt,
     });
 
@@ -214,6 +214,7 @@ console.log("PASSWORD EXISTS:", !!user?.password);
       success: true,
       message: "Login successful",
       accessToken,
+      refreshToken, // Returned for client fallback if cross-domain cookies are restricted
       user: {
         id: user._id,
         name: user.name,
@@ -238,6 +239,64 @@ console.log("PASSWORD EXISTS:", !!user?.password);
         process.env.NODE_ENV === "development"
           ? error.message
           : undefined,
+    });
+  }
+};
+
+/**
+ * POST /api/auth/refresh-token
+ * Silent background auto-refresh for expired Access Tokens
+ */
+export const refreshAccessToken = async (req, res) => {
+  try {
+    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+
+    if (!refreshToken) {
+      return res.status(401).json({
+        success: false,
+        message: "Refresh token is missing. Please sign in again.",
+      });
+    }
+
+    const tokenHash = hashToken(refreshToken);
+
+    // Find valid session in MongoDB Atlas
+    const session = await Session.findOne({
+      tokenHash,
+      expiresAt: { $gt: new Date() },
+    });
+
+    if (!session) {
+      return res.status(401).json({
+        success: false,
+        message: "Session expired or invalid. Please sign in again.",
+      });
+    }
+
+    const user = await User.findById(session.userId);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "User account no longer exists.",
+      });
+    }
+
+    // Generate fresh 15-minute Access Token
+    const newAccessToken = generateAccessToken(user);
+
+    console.log(`🔄 [SILENT AUTO-REFRESH] Issued fresh Access Token for: ${user.email}`);
+
+    return res.status(200).json({
+      success: true,
+      message: "Access token renewed successfully",
+      accessToken: newAccessToken,
+    });
+  } catch (error) {
+    console.error("❌ [REFRESH TOKEN ERROR]:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to refresh token",
+      error: error.message,
     });
   }
 };

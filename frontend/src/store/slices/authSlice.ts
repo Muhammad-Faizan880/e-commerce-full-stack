@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import type { User, AuthMode } from '../../types/auth';
 import { registerUser, loginUser } from '../../api/authApi';
-import { setAccessToken, clearAccessToken } from '../../utils/tokenStore';
+import { setAccessToken, setRefreshToken, clearAccessToken } from '../../utils/tokenStore';
 
 const STORAGE_KEY = 'copenhagen_authenticated_user';
 
@@ -65,9 +65,12 @@ export const loginUserThunk = createAsyncThunk<
   try {
     const response = await loginUser(credentials);
 
-    // Save Access Token in-memory
+    // Save Access Token & Refresh Token
     if (response?.accessToken) {
       setAccessToken(response.accessToken);
+    }
+    if ((response as unknown as { refreshToken?: string })?.refreshToken) {
+      setRefreshToken((response as unknown as { refreshToken?: string }).refreshToken!);
     }
 
     const resUser = response?.user;

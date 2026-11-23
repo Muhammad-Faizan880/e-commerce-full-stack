@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getAccessToken } from "../utils/tokenStore";
+import { getAccessToken, setAccessToken, getRefreshToken, clearAccessToken } from "../utils/tokenStore";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
@@ -42,11 +42,55 @@ api.interceptors.response.use(
     );
     return response;
   },
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+    const status = error.response?.status;
     const message =
       error.response?.data?.message ||
       error.message ||
       "Something went wrong";
+
+    // SILENT AUTO-REFRESH: When 401 occurs and request hasn't been retried yet
+    if (
+      status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes("/auth/refresh-token") &&
+      !originalRequest.url?.includes("/auth/login")
+    ) {
+      originalRequest._retry = true;
+
+      try {
+        console.log(
+          "%c 🔄 [AUTO REFRESH] Access token expired! Silently requesting fresh token...",
+          "color: #e67e22; font-weight: bold;"
+        );
+
+        const refreshToken = getRefreshToken();
+        const refreshResponse = await axios.post(
+          `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/auth/refresh-token`,
+          { refreshToken },
+          { withCredentials: true }
+        );
+
+        const newAccessToken = refreshResponse.data?.accessToken;
+
+        if (newAccessToken) {
+          setAccessToken(newAccessToken);
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+
+          console.log(
+            "%c ✅ [AUTO REFRESH SUCCESS] Re-executing original request with fresh token!",
+            "color: #27ae60; font-weight: bold;"
+          );
+
+          return api(originalRequest);
+        }
+      } catch (refreshErr) {
+        console.warn("⚠️ [AUTO REFRESH FAILED] Session expired or invalid. Clearing tokens:", refreshErr);
+        clearAccessToken();
+      }
+    }
 
     console.error(
       `%c [API ERROR] ${error.response?.status || 'Network'} from ${error.config?.url}:`,
