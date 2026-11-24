@@ -58,6 +58,7 @@ export const clearAccessToken = (): void => {
   try {
     localStorage.removeItem(TOKEN_STORAGE_KEY);
     localStorage.removeItem(REFRESH_STORAGE_KEY);
+    localStorage.removeItem('copenhagen_authenticated_user');
   } catch {
     // Ignore
   }

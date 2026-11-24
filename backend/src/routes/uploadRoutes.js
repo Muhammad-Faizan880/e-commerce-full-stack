@@ -20,7 +20,7 @@ router.post("/", protect, adminOnly, upload.single("image"), async (req, res) =>
     }
 
     console.log(
-      `☁️ [CLOUDINARY UPLOAD] Processing "${req.file.originalname}" (${Math.round(req.file.size / 1024)} KB)...`
+      ` [CLOUDINARY UPLOAD] Processing "${req.file.originalname}" (${Math.round(req.file.size / 1024)} KB)...`
     );
 
     // Stream upload directly from memory buffer
@@ -36,7 +36,7 @@ router.post("/", protect, adminOnly, upload.single("image"), async (req, res) =>
           },
           (error, result) => {
             if (error) {
-              console.error("❌ [CLOUDINARY STREAM ERROR]:", error);
+              console.error(" [CLOUDINARY STREAM ERROR]:", error);
               return reject(error);
             }
             resolve(result);
@@ -48,7 +48,7 @@ router.post("/", protect, adminOnly, upload.single("image"), async (req, res) =>
 
     const result = await uploadToCloudinary();
 
-    console.log(`✅ [CLOUDINARY SUCCESS] Image uploaded successfully! URL: ${result.secure_url}`);
+    console.log(` [CLOUDINARY SUCCESS] Image uploaded successfully! URL: ${result.secure_url}`);
 
     return res.status(200).json({
       success: true,
@@ -57,7 +57,7 @@ router.post("/", protect, adminOnly, upload.single("image"), async (req, res) =>
       publicId: result.public_id,
     });
   } catch (error) {
-    console.error("❌ [IMAGE UPLOAD FAILED]:", error.message);
+    console.error(" [IMAGE UPLOAD FAILED]:", error.message);
     return res.status(500).json({
       success: false,
       message: error.message || "Failed to upload image to Cloudinary",

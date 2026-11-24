@@ -63,7 +63,7 @@ export const createOrder = async (req, res) => {
               product.inStock = false;
             }
             await product.save();
-            console.log(`📉 [BACKEND STOCK UPDATE] "${product.name}" stock reduced: ${previousStock} -> ${product.stock}`);
+            console.log(` [BACKEND STOCK UPDATE] "${product.name}" stock reduced: ${previousStock} -> ${product.stock}`);
           }
         } catch {
           // If product lookup fails, continue order creation
@@ -74,7 +74,7 @@ export const createOrder = async (req, res) => {
     // Payment status logic
     const paymentStatus = paymentMethod === "cod" ? "Pending" : "Paid";
 
-    console.log(`📦 [BACKEND ORDER INCOMING] User ID: ${req.user.userId} | Items: ${formattedItems.length} | Total: $${total}`);
+    console.log(` [BACKEND ORDER INCOMING] User ID: ${req.user.userId} | Items: ${formattedItems.length} | Total: $${total}`);
 
     const order = await Order.create({
       orderNumber,
@@ -96,7 +96,7 @@ export const createOrder = async (req, res) => {
       status: "Processing",
     });
 
-    console.log(`✅ [BACKEND ORDER SAVED] Order #${order.orderNumber} successfully written to MongoDB!`);
+    console.log(` [BACKEND ORDER SAVED] Order #${order.orderNumber} successfully written to MongoDB!`);
 
     return res.status(201).json({
       success: true,

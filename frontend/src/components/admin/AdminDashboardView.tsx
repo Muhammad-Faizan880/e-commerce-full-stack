@@ -46,7 +46,7 @@ interface MongoUser {
 }
 
 export const AdminDashboardView: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, openAuthModal } = useAuth();
   const { setCurrentView } = useCart();
 
   const [activeTab, setActiveTab] = useState<'orders' | 'products' | 'customers'>('orders');
@@ -420,9 +420,21 @@ export const AdminDashboardView: React.FC = () => {
               <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0" />
               <span>Admin API Notice: {apiError}</span>
             </div>
-            <Button variant="ghost" size="sm" onClick={fetchDashboardData} className="text-rose-700">
-              Retry
-            </Button>
+            <div className="flex items-center gap-2">
+              {apiError.toLowerCase().includes('login') || apiError.toLowerCase().includes('token') || apiError.toLowerCase().includes('denied') ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => openAuthModal('login')}
+                  className="text-rose-800 border-rose-300 hover:bg-rose-100"
+                >
+                  Sign In Again
+                </Button>
+              ) : null}
+              <Button variant="ghost" size="sm" onClick={fetchDashboardData} className="text-rose-700">
+                Retry
+              </Button>
+            </div>
           </div>
         )}
 

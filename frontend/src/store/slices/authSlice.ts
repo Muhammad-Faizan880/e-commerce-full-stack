@@ -1,14 +1,31 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from '@reduxjs/toolkit';
 import type { User, AuthMode } from '../../types/auth';
 import { registerUser, loginUser } from '../../api/authApi';
-import { setAccessToken, setRefreshToken, clearAccessToken } from '../../utils/tokenStore';
+import {
+  setAccessToken,
+  setRefreshToken,
+  getAccessToken,
+  getRefreshToken,
+  clearAccessToken,
+} from '../../utils/tokenStore';
 
 const STORAGE_KEY = 'copenhagen_authenticated_user';
 
 const loadSavedUser = (): User | null => {
   try {
+    const token = getAccessToken();
+    const refresh = getRefreshToken();
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return JSON.parse(saved) as User;
+
+    // Only restore user if an access token or refresh token is present
+    if (saved && (token || refresh)) {
+      return JSON.parse(saved) as User;
+    }
+
+    // Clean up orphaned user state if tokens are missing
+    if (saved && !token && !refresh) {
+      localStorage.removeItem(STORAGE_KEY);
+    }
   } catch {
     // Ignore error if storage is restricted
   }
