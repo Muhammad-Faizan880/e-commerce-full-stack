@@ -101,24 +101,37 @@ export const createOrder = async (req, res) => {
 
     console.log(`✅ [BACKEND ORDER SAVED] Order #${order.orderNumber} successfully written to MongoDB!`);
 
-    // ASYNC ORDER CONFIRMATION EMAIL (Dispatched without blocking the user response)
-    (async () => {
-      try {
-        const customer = await User.findById(req.user.userId);
-        const recipientEmail = customer?.email || req.user.email;
-        if (recipientEmail) {
-          const htmlReceipt = generateOrderReceiptHtml({ order, user: customer });
-          await sendEmail({
-            email: recipientEmail,
-            subject: `Order Confirmed: #${order.orderNumber} — Copenhagen Atelier`,
-            html: htmlReceipt,
-          });
-          console.log(`✉️ [ORDER INVOICE SENT] Confirmation receipt successfully dispatched to: ${recipientEmail}`);
-        }
-      } catch (emailError) {
-        console.warn("⚠️ [ORDER EMAIL NOTICE] Order was created, but confirmation email could not be sent:", emailError.message);
+    // ORDER CONFIRMATION EMAIL (Awaited so Vercel Serverless does not freeze before SMTP dispatch)
+    try {
+      const customer = await User.findById(req.user.userId);
+      const recipientEmail = (
+        shippingAddress?.email ||
+        customer?.email ||
+        req.user?.email ||
+        ""
+      ).trim().toLowerCase();
+
+      console.log(`✉️ [ORDER EMAIL] Dispatching invoice receipt to: "${recipientEmail}"`);
+
+      if (recipientEmail) {
+        const htmlReceipt = generateOrderReceiptHtml({
+          order,
+          user: customer || { name: `${shippingAddress.firstName || ""} ${shippingAddress.lastName || ""}`.trim() },
+        });
+
+        await sendEmail({
+          email: recipientEmail,
+          subject: `Order Confirmed: #${order.orderNumber} — Copenhagen Atelier`,
+          html: htmlReceipt,
+        });
+
+        console.log(`✅ [ORDER INVOICE SENT] Confirmation receipt successfully dispatched to: ${recipientEmail}`);
+      } else {
+        console.warn("⚠️ [ORDER EMAIL SKIPPED] No valid recipient email address found.");
       }
-    })();
+    } catch (emailError) {
+      console.error("⚠️ [ORDER EMAIL NOTICE] Order was created, but confirmation email failed:", emailError.message);
+    }
 
     return res.status(201).json({
       success: true,
