@@ -1,5 +1,8 @@
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
+import User from "../models/User.js";
+import sendEmail from "../utils/email.js";
+import { generateOrderReceiptHtml } from "../utils/orderEmailTemplate.js";
 
 /**
  * POST /api/orders
@@ -96,7 +99,26 @@ export const createOrder = async (req, res) => {
       status: "Processing",
     });
 
-    console.log(` [BACKEND ORDER SAVED] Order #${order.orderNumber} successfully written to MongoDB!`);
+    console.log(`✅ [BACKEND ORDER SAVED] Order #${order.orderNumber} successfully written to MongoDB!`);
+
+    // ASYNC ORDER CONFIRMATION EMAIL (Dispatched without blocking the user response)
+    (async () => {
+      try {
+        const customer = await User.findById(req.user.userId);
+        const recipientEmail = customer?.email || req.user.email;
+        if (recipientEmail) {
+          const htmlReceipt = generateOrderReceiptHtml({ order, user: customer });
+          await sendEmail({
+            email: recipientEmail,
+            subject: `Order Confirmed: #${order.orderNumber} — Copenhagen Atelier`,
+            html: htmlReceipt,
+          });
+          console.log(`✉️ [ORDER INVOICE SENT] Confirmation receipt successfully dispatched to: ${recipientEmail}`);
+        }
+      } catch (emailError) {
+        console.warn("⚠️ [ORDER EMAIL NOTICE] Order was created, but confirmation email could not be sent:", emailError.message);
+      }
+    })();
 
     return res.status(201).json({
       success: true,
