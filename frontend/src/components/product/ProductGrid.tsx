@@ -45,7 +45,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
         });
 
         if (isMounted && Array.isArray(liveProducts) && liveProducts.length > 0) {
-          console.log(`🛋️ [CATALOG FRONTEND] Loaded live products from MongoDB Atlas: ${liveProducts.length} items (Category: "${selectedCategory}")`);
+          console.log(`[CATALOG: LOADED] Loaded live products from MongoDB Atlas: ${liveProducts.length} items (Category: "${selectedCategory}")`);
           setProducts(liveProducts);
         }
       } catch (err) {
@@ -65,7 +65,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                 p.categoryLabel.toLowerCase().includes(q)
             );
           }
-          console.log(`🛋️ [CATALOG FRONTEND] Using local catalog fallback: ${fallback.length} items`);
+          console.log(`[CATALOG: FALLBACK] Using local catalog fallback: ${fallback.length} items`);
           setProducts(fallback);
         }
       } finally {

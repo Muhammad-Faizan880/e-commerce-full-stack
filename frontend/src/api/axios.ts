@@ -61,10 +61,7 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        console.log(
-          "%c 🔄 [AUTO REFRESH] Access token expired! Silently requesting fresh token...",
-          "color: #e67e22; font-weight: bold;"
-        );
+        console.log("[AUTO_REFRESH: START] Access token expired. Requesting fresh token silently...");
 
         const refreshToken = getRefreshToken();
         const refreshResponse = await axios.post(
@@ -79,15 +76,12 @@ api.interceptors.response.use(
           setAccessToken(newAccessToken);
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
-          console.log(
-            "%c ✅ [AUTO REFRESH SUCCESS] Re-executing original request with fresh token!",
-            "color: #27ae60; font-weight: bold;"
-          );
+          console.log("[AUTO_REFRESH: SUCCESS] Re-executing original request with fresh token.");
 
           return api(originalRequest);
         }
       } catch (refreshErr) {
-        console.warn("⚠️ [AUTO REFRESH FAILED] Session expired or invalid. Clearing tokens:", refreshErr);
+        console.warn("[AUTO_REFRESH: FAILED] Session expired or invalid. Clearing tokens:", refreshErr);
         clearAccessToken();
       }
     }

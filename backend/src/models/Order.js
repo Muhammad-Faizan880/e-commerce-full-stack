@@ -64,8 +64,13 @@ const orderSchema = new mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ["credit-card", "apple-pay", "cod"],
+      enum: ["credit-card", "apple-pay", "cod", "stripe"],
       default: "credit-card",
+    },
+    stripeSessionId: {
+      type: String,
+      default: null,
+      index: true,
     },
     paymentStatus: {
       type: String,

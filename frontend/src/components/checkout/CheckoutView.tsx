@@ -19,6 +19,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Select } from '../ui/Select';
 import { createOrderApi } from '../../api/orderApi';
+import { createStripeCheckoutSession } from '../../api/paymentApi';
 
 export const CheckoutView: React.FC = () => {
   const {
@@ -162,11 +163,22 @@ export const CheckoutView: React.FC = () => {
         total,
       };
 
-      console.log('📦 [CHECKOUT FLOW] Submitting Order Payload to Backend:', orderPayload);
+      console.log('[CHECKOUT: SUBMIT] Submitting order payload to backend:', orderPayload);
 
+      // 1. STRIPE PAYMENT FLOW: If Credit Card / Stripe selected, redirect to Stripe Hosted Checkout
+      if (paymentMethod === 'credit-card') {
+        console.log('[STRIPE: CHECKOUT] Redirecting to Stripe secure checkout page...');
+        const stripeSession = await createStripeCheckoutSession(orderPayload);
+        if (stripeSession?.url) {
+          window.location.href = stripeSession.url;
+          return;
+        }
+      }
+
+      // 2. CASH ON DELIVERY / STANDARD FLOW: Create order directly in MongoDB Atlas
       const backendOrder = await createOrderApi(orderPayload);
 
-      console.log('🎉 [CHECKOUT SUCCESS] Order Created in MongoDB:', backendOrder);
+      console.log('[CHECKOUT: SUCCESS] Order created in MongoDB:', backendOrder);
 
       const confirmation: OrderConfirmation = {
         orderId: backendOrder.orderNumber,
@@ -606,7 +618,9 @@ export const CheckoutView: React.FC = () => {
               className="bg-olive-600 hover:bg-olive-700 text-offwhite-50 text-sm tracking-[0.16em]"
             >
               {isAuthenticated
-                ? `Confirm & Complete Acquisition ($${total.toFixed(2)} CAD)`
+                ? paymentMethod === 'credit-card'
+                  ? `Pay with Stripe Card ($${total.toFixed(2)} CAD)`
+                  : `Confirm & Place Order ($${total.toFixed(2)} CAD)`
                 : `Sign In to Pay & Place Order ($${total.toFixed(2)} CAD)`}
             </Button>
             <p className="text-center text-[11px] text-copen-muted mt-3">

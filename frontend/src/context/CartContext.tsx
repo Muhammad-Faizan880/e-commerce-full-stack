@@ -122,7 +122,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const color = selectedColor || product.colors?.[0]?.name || 'Standard';
     const itemId = `${product.id}-${color}`;
 
-    console.log(`🛍️ [CART ACTION: ADD ITEM] Adding "${product.name}" | Qty: ${quantity} | Color: ${color}`);
+    console.log(`[CART: ADD_ITEM] Adding "${product.name}" | Qty: ${quantity} | Color: ${color}`);
 
     setCartItems((prev) => {
       const existing = prev.find((item) => item.id === itemId);
@@ -139,7 +139,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateQuantity = (itemId: string, quantity: number) => {
-    console.log(`🔢 [CART ACTION: UPDATE QTY] ItemId: ${itemId} | New Qty: ${quantity}`);
+    console.log(`[CART: UPDATE_QTY] ItemId: ${itemId} | New Qty: ${quantity}`);
     if (quantity <= 0) {
       removeItem(itemId);
       return;
@@ -151,7 +151,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const removeItem = (itemId: string) => {
     const target = cartItems.find((i) => i.id === itemId);
-    console.log(`🗑️ [CART ACTION: REMOVE ITEM] ItemId: ${itemId} | Name: ${target?.product.name}`);
+    console.log(`[CART: REMOVE_ITEM] ItemId: ${itemId} | Name: ${target?.product.name}`);
     setCartItems((prev) => prev.filter((item) => item.id !== itemId));
     if (target) {
       showToast(`${target.product.name} removed`, 'info');
@@ -159,7 +159,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const clearCart = () => {
-    console.log(`🧹 [CART ACTION: CLEAR CART] Cart emptied`);
+    console.log(`[CART: CLEAR] Cart emptied`);
     setCartItems([]);
   };
 

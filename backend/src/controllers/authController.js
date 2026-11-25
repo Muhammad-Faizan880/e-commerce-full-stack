@@ -284,7 +284,7 @@ export const refreshAccessToken = async (req, res) => {
     // Generate fresh 15-minute Access Token
     const newAccessToken = generateAccessToken(user);
 
-    console.log(`🔄 [SILENT AUTO-REFRESH] Issued fresh Access Token for: ${user.email}`);
+    console.log(`[AUTH: REFRESH_TOKEN] Issued fresh Access Token for: ${user.email}`);
 
     return res.status(200).json({
       success: true,
@@ -292,7 +292,7 @@ export const refreshAccessToken = async (req, res) => {
       accessToken: newAccessToken,
     });
   } catch (error) {
-    console.error("❌ [REFRESH TOKEN ERROR]:", error);
+    console.error("[AUTH: REFRESH_TOKEN_ERROR]:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to refresh token",

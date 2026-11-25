@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Eye, ShoppingBag } from 'lucide-react';
 import type { Product } from '../../types/product';
 import { handleImageError } from '../../data/products';
@@ -11,11 +12,22 @@ export interface ProductCardProps {
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickView }) => {
+  const navigate = useNavigate();
   const { addItem } = useCart();
   const [selectedColor, setSelectedColor] = useState(
     product.colors?.[0]?.name || ''
   );
   const [imageIndex, setImageIndex] = useState(0);
+
+  const productId = product.id || (product as any)._id;
+
+  const handleCardClick = () => {
+    if (productId) {
+      navigate(`/product/${productId}`);
+    } else {
+      onQuickView(product);
+    }
+  };
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -26,7 +38,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickView }
 
   return (
     <div
-      onClick={() => onQuickView(product)}
+      onClick={handleCardClick}
       className="group relative flex flex-col cursor-pointer transition-all duration-300"
     >
       {/* Product Image Stage */}

@@ -120,7 +120,7 @@ export const loginUserThunk = createAsyncThunk<
       // storage unavailable
     }
 
-    console.log(` [AUTH REDUX: LOGIN] Successfully logged in as: ${user.name} (${user.email}) | Role: ${user.role}`);
+    console.log(`[AUTH: LOGIN] Successfully logged in as: ${user.name} (${user.email}) | Role: ${user.role}`);
 
     return user;
   } catch (err: unknown) {
@@ -152,7 +152,7 @@ export const authSlice = createSlice({
       }
     },
     logout: (state) => {
-      console.log('👋 [AUTH REDUX: LOGOUT] User logged out and session cleared.');
+      console.log('[AUTH: LOGOUT] User logged out and session cleared.');
       state.user = null;
       state.isAuthenticated = false;
       state.error = null;

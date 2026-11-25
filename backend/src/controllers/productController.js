@@ -38,7 +38,7 @@ export const getProducts = async (req, res) => {
 
     const products = await Product.find(query).sort(sortOption);
 
-    console.log(`🛋️ [PRODUCTS API] GET /api/products | Filters: category="${category || 'all'}", search="${search || ''}", sort="${sort || 'default'}" -> Returned ${products.length} products`);
+    console.log(`[PRODUCTS: GET] Filters: category="${category || 'all'}", search="${search || ''}", sort="${sort || 'default'}" -> Returned ${products.length} products`);
 
     return res.status(200).json({
       success: true,
@@ -57,25 +57,38 @@ export const getProducts = async (req, res) => {
 
 /**
  * GET /api/products/:id
- * Fetch single product by ID
+ * Fetch single product by ID or ObjectId
  */
 export const getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const { id } = req.params;
+    let product = null;
+
+    if (id && id.length === 24 && /^[0-9a-fA-F]{24}$/.test(id)) {
+      product = await Product.findById(id);
+    }
+
+    if (!product) {
+      product = await Product.findOne({
+        $or: [{ _id: id.length === 24 ? id : undefined }, { name: new RegExp(`^${id}$`, "i") }],
+      });
+    }
 
     if (!product) {
       return res.status(404).json({
         success: false,
-        message: "Product not found",
+        message: "Product piece not found in catalog",
       });
     }
+
+    console.log(`[PRODUCTS: GET_BY_ID] Found product: "${product.name}" (ID: ${product._id})`);
 
     return res.status(200).json({
       success: true,
       product,
     });
   } catch (error) {
-    console.error(" [GET PRODUCT BY ID ERROR]:", error);
+    console.error("[PRODUCTS: GET_BY_ID_ERROR]:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to fetch product details",
@@ -134,7 +147,7 @@ export const createProduct = async (req, res) => {
       inStock: Number(stock || 10) > 0,
     });
 
-    console.log(`✨ [PRODUCT CREATED] ID: ${product._id} | Name: "${product.name}" | Price: $${product.price} | Stock: ${product.stock}`);
+    console.log(`[PRODUCTS: CREATED] ID: ${product._id} | Name: "${product.name}" | Price: $${product.price} | Stock: ${product.stock}`);
 
     return res.status(201).json({
       success: true,
@@ -142,7 +155,7 @@ export const createProduct = async (req, res) => {
       product,
     });
   } catch (error) {
-    console.error(" [CREATE PRODUCT ERROR]:", error);
+    console.error("[PRODUCTS: CREATE_ERROR]:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to create product",
@@ -178,7 +191,7 @@ export const updateProduct = async (req, res) => {
       { new: true, runValidators: true }
     );
 
-    console.log(`✏️ [PRODUCT UPDATED] ID: ${req.params.id} | Updates:`, updates);
+    console.log(`[PRODUCTS: UPDATED] ID: ${req.params.id} | Updates:`, updates);
 
     return res.status(200).json({
       success: true,
@@ -186,7 +199,7 @@ export const updateProduct = async (req, res) => {
       product: updatedProduct,
     });
   } catch (error) {
-    console.error(" [UPDATE PRODUCT ERROR]:", error);
+    console.error("[PRODUCTS: UPDATE_ERROR]:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to update product",
@@ -210,7 +223,7 @@ export const deleteProduct = async (req, res) => {
       });
     }
 
-    console.log(`🗑️ [PRODUCT DELETED] ID: ${req.params.id} | Name: "${product.name}"`);
+    console.log(`[PRODUCTS: DELETED] ID: ${req.params.id} | Name: "${product.name}"`);
 
     return res.status(200).json({
       success: true,
