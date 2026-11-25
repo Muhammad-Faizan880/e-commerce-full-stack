@@ -101,6 +101,22 @@ export const createOrder = async (req, res) => {
 
     console.log(`[ORDER: SAVED] Order #${order.orderNumber} successfully written to MongoDB`);
 
+    // Real-time stock auto-deduction in MongoDB Atlas
+    try {
+      for (const item of items) {
+        const prodId = item.productId || item.product;
+        if (prodId) {
+          await Product.findByIdAndUpdate(prodId, {
+            $inc: { stock: -Number(item.quantity || 1) },
+          });
+        }
+      }
+      await Product.updateMany({ stock: { $lte: 0 } }, { $set: { stock: 0, inStock: false } });
+      console.log(`[ORDER: STOCK_DEDUCTED] Catalog inventory levels updated for order #${order.orderNumber}`);
+    } catch (stockErr) {
+      console.error("[ORDER: STOCK_DEDUCT_ERROR]:", stockErr.message);
+    }
+
     // ORDER CONFIRMATION EMAIL (Awaited so Vercel Serverless does not freeze before SMTP dispatch)
     try {
       const customer = await User.findById(req.user.userId);

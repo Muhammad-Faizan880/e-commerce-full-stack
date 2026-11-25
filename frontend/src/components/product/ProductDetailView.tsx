@@ -244,24 +244,26 @@ export const ProductDetailView: React.FC = () => {
               {/* Stock Indicator */}
               <div className="flex items-center gap-1.5 text-[11px] font-medium">
                 {product.stock !== undefined && product.stock > 0 ? (
-                  product.stock < 5 ? (
-                    <span className="text-amber-700 flex items-center gap-1">
+                  product.stock <= 5 ? (
+                    <span className="text-amber-700 flex items-center gap-1 font-semibold">
                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-                      Only {product.stock} pieces remaining
+                      Only {product.stock} pieces remaining in stock
                     </span>
                   ) : (
                     <span className="text-emerald-700 flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                      In Stock &bull; Ready to Dispatch
+                      In Stock ({product.stock} pieces) &bull; Ready to Dispatch
                     </span>
                   )
-                ) : product.inStock !== false ? (
+                ) : (product.stock === 0 || product.inStock === false) ? (
+                  <span className="text-rose-600 font-bold bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-xs">
+                    Sold Out / Out of Stock
+                  </span>
+                ) : (
                   <span className="text-emerald-700 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                     Atelier Handcrafted
                   </span>
-                ) : (
-                  <span className="text-rose-600 font-semibold">Out of Stock</span>
                 )}
               </div>
             </div>
@@ -360,44 +362,54 @@ export const ProductDetailView: React.FC = () => {
 
             {/* Quantity Stepper & Add to Bag Action */}
             <div className="space-y-3 pt-2">
-              <div className="flex items-center gap-4">
-                {/* Stepper */}
-                <div className="flex items-center border border-copen-border bg-offwhite h-12 px-3">
-                  <button
-                    type="button"
-                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                    disabled={quantity <= 1}
-                    className="p-1 text-copen-gray hover:text-copen-black disabled:opacity-30 cursor-pointer"
-                  >
-                    <Minus className="w-3.5 h-3.5" />
-                  </button>
-                  <span className="w-10 text-center font-semibold text-xs text-copen-black">
-                    {quantity}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setQuantity((q) => q + 1)}
-                    className="p-1 text-copen-gray hover:text-copen-black cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+              {(() => {
+                const maxStock = product.stock !== undefined ? product.stock : (product.inStock ? 10 : 0);
+                const isSoldOut = maxStock <= 0 || product.inStock === false;
 
-                {/* Primary Add Button */}
-                <button
-                  type="button"
-                  onClick={handleAddToCart}
-                  disabled={product.inStock === false || (product.stock !== undefined && product.stock === 0)}
-                  className="flex-1 h-12 bg-copen-black hover:bg-olive-700 text-offwhite-50 text-xs font-semibold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 shadow-xs cursor-pointer disabled:bg-copen-muted disabled:cursor-not-allowed"
-                >
-                  <ShoppingBag className="w-4 h-4" />
-                  <span>
-                    {product.inStock === false || (product.stock !== undefined && product.stock === 0)
-                      ? 'Out of Stock'
-                      : `Add to Bag &bull; $${(product.price * quantity).toFixed(2)} CAD`}
-                  </span>
-                </button>
-              </div>
+                return (
+                  <div className="flex items-center gap-4">
+                    {/* Stepper */}
+                    <div className="flex items-center border border-copen-border bg-offwhite h-12 px-3">
+                      <button
+                        type="button"
+                        onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                        disabled={quantity <= 1 || isSoldOut}
+                        className="p-1 text-copen-gray hover:text-copen-black disabled:opacity-30 cursor-pointer"
+                        title="Decrease quantity"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="w-10 text-center font-semibold text-xs text-copen-black">
+                        {isSoldOut ? 0 : quantity}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setQuantity((q) => Math.min(maxStock, q + 1))}
+                        disabled={quantity >= maxStock || isSoldOut}
+                        className="p-1 text-copen-gray hover:text-copen-black disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                        title={quantity >= maxStock ? `Only ${maxStock} units available in stock` : "Increase quantity"}
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    {/* Primary Add Button */}
+                    <button
+                      type="button"
+                      onClick={handleAddToCart}
+                      disabled={isSoldOut}
+                      className="flex-1 h-12 bg-copen-black hover:bg-olive-700 text-offwhite-50 text-xs font-semibold uppercase tracking-widest transition-colors flex items-center justify-center gap-2 shadow-xs cursor-pointer disabled:bg-copen-muted disabled:cursor-not-allowed"
+                    >
+                      <ShoppingBag className="w-4 h-4" />
+                      <span>
+                        {isSoldOut
+                          ? 'Sold Out / Out of Stock'
+                          : `Add to Bag • $${(product.price * quantity).toFixed(2)} CAD`}
+                      </span>
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* Value Guarantees */}

@@ -132,6 +132,19 @@ export const CheckoutView: React.FC = () => {
       return;
     }
 
+    // Stock validation: Ensure order quantity does not exceed inventory
+    for (const item of cartItems) {
+      const maxStock = item.product.stock !== undefined ? item.product.stock : 10;
+      if (item.quantity > maxStock) {
+        showToast(`"${item.product.name}" has only ${maxStock} units available in stock. Please adjust your bag.`, 'error');
+        return;
+      }
+      if (maxStock <= 0) {
+        showToast(`"${item.product.name}" is currently sold out. Please remove it to proceed.`, 'error');
+        return;
+      }
+    }
+
     // Step to gate payment: Prompt login / register if not authenticated
     if (!isAuthenticated) {
       showToast('Please sign in or register to complete your payment', 'info');

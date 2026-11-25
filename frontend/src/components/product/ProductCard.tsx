@@ -87,23 +87,41 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickView }
 
         {/* Floating Quick Add Bar on hover */}
         <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-copen-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center">
-          <button
-            type="button"
-            onClick={handleAddToCart}
-            className="w-full bg-offwhite-surface/95 backdrop-blur-xs hover:bg-olive-600 hover:text-offwhite-50 text-copen-black text-[11px] uppercase tracking-wider font-medium py-2.5 px-4 border border-copen-border/80 transition-colors flex items-center justify-center gap-2 shadow-sm"
-          >
-            <ShoppingBag className="w-3.5 h-3.5" />
-            <span>Quick Add</span>
-          </button>
+          {(() => {
+            const isSoldOut = product.stock !== undefined ? product.stock <= 0 : product.inStock === false;
+            return (
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                disabled={isSoldOut}
+                className="w-full bg-offwhite-surface/95 backdrop-blur-xs hover:bg-olive-600 hover:text-offwhite-50 text-copen-black text-[11px] uppercase tracking-wider font-medium py-2.5 px-4 border border-copen-border/80 transition-colors flex items-center justify-center gap-2 shadow-sm disabled:bg-copen-muted disabled:text-offwhite-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                <ShoppingBag className="w-3.5 h-3.5" />
+                <span>{isSoldOut ? 'Sold Out' : 'Quick Add'}</span>
+              </button>
+            );
+          })()}
         </div>
       </div>
 
       {/* Product Details matching screenshot */}
       <div className="pt-4 flex flex-col items-center text-center space-y-1">
-        {/* Subtle Category Tag */}
-        <span className="text-[10px] tracking-[0.18em] uppercase text-copen-muted font-medium">
-          {product.categoryLabel}
-        </span>
+        {/* Subtle Category & Stock Warning */}
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] tracking-[0.18em] uppercase text-copen-muted font-medium">
+            {product.categoryLabel}
+          </span>
+          {product.stock !== undefined && product.stock <= 5 && product.stock > 0 && (
+            <span className="text-[9px] uppercase tracking-wider text-amber-800 bg-amber-50 border border-amber-200 px-1 py-0.2 rounded-xs font-semibold">
+              Only {product.stock} left
+            </span>
+          )}
+          {(product.stock === 0 || product.inStock === false) && (
+            <span className="text-[9px] uppercase tracking-wider text-rose-800 bg-rose-50 border border-rose-200 px-1 py-0.2 rounded-xs font-bold">
+              Sold Out
+            </span>
+          )}
+        </div>
 
         {/* Title */}
         <h3 className="font-serif font-bold text-base sm:text-lg text-copen-black group-hover:text-olive-700 transition-colors line-clamp-1">

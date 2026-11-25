@@ -317,6 +317,21 @@ export const verifySessionAndCreateOrder = async (req, res) => {
 
     console.log(`[ORDER: SAVED] Stripe Order #${order.orderNumber} successfully written to MongoDB`);
 
+    // Real-time stock auto-deduction in MongoDB Atlas for Stripe Orders
+    try {
+      for (const item of formattedItems) {
+        if (item.product) {
+          await Product.findByIdAndUpdate(item.product, {
+            $inc: { stock: -Number(item.quantity || 1) },
+          });
+        }
+      }
+      await Product.updateMany({ stock: { $lte: 0 } }, { $set: { stock: 0, inStock: false } });
+      console.log(`[STRIPE: STOCK_DEDUCTED] Catalog inventory levels updated for order #${order.orderNumber}`);
+    } catch (stockErr) {
+      console.error("[STRIPE: STOCK_DEDUCT_ERROR]:", stockErr.message);
+    }
+
     // 5. Send Order Confirmation Email (Awaited for Vercel Serverless)
     try {
       const customer = isValidUserId ? await User.findById(userId) : null;

@@ -122,7 +122,36 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const color = selectedColor || product.colors?.[0]?.name || 'Standard';
     const itemId = `${product.id}-${color}`;
 
-    console.log(`[CART: ADD_ITEM] Adding "${product.name}" | Qty: ${quantity} | Color: ${color}`);
+    const maxStock = product.stock !== undefined ? product.stock : (product.inStock ? 10 : 0);
+
+    // 1. Guard against adding sold out items
+    if (maxStock <= 0) {
+      showToast(`"${product.name}" is currently out of stock`, 'error');
+      return;
+    }
+
+    const existingItem = cartItems.find((item) => item.id === itemId);
+    const currentQtyInCart = existingItem ? existingItem.quantity : 0;
+
+    // 2. Guard against exceeding available stock
+    if (currentQtyInCart + quantity > maxStock) {
+      const allowedToAdd = maxStock - currentQtyInCart;
+      if (allowedToAdd <= 0) {
+        showToast(`Cannot add more. Maximum available stock (${maxStock}) is already in your bag.`, 'error');
+        setIsCartOpen(true);
+        return;
+      }
+      showToast(`Only ${maxStock} units of "${product.name}" exist in inventory. Added remaining ${allowedToAdd}.`, 'info');
+      setCartItems((prev) =>
+        prev.map((item) =>
+          item.id === itemId ? { ...item, quantity: maxStock } : item
+        )
+      );
+      setIsCartOpen(true);
+      return;
+    }
+
+    console.log(`[CART: ADD_ITEM] Adding "${product.name}" | Qty: ${quantity} | Color: ${color} | Stock: ${maxStock}`);
 
     setCartItems((prev) => {
       const existing = prev.find((item) => item.id === itemId);
@@ -139,11 +168,25 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateQuantity = (itemId: string, quantity: number) => {
-    console.log(`[CART: UPDATE_QTY] ItemId: ${itemId} | New Qty: ${quantity}`);
     if (quantity <= 0) {
       removeItem(itemId);
       return;
     }
+
+    const target = cartItems.find((i) => i.id === itemId);
+    if (!target) return;
+
+    const maxStock = target.product.stock !== undefined ? target.product.stock : 10;
+
+    if (quantity > maxStock) {
+      showToast(`Only ${maxStock} units of "${target.product.name}" are available in stock.`, 'error');
+      setCartItems((prev) =>
+        prev.map((item) => (item.id === itemId ? { ...item, quantity: maxStock } : item))
+      );
+      return;
+    }
+
+    console.log(`[CART: UPDATE_QTY] ItemId: ${itemId} | New Qty: ${quantity} / Stock: ${maxStock}`);
     setCartItems((prev) =>
       prev.map((item) => (item.id === itemId ? { ...item, quantity } : item))
     );

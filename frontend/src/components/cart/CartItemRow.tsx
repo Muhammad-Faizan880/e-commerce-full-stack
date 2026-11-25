@@ -12,6 +12,8 @@ export interface CartItemRowProps {
 export const CartItemRow: React.FC<CartItemRowProps> = ({ item }) => {
   const { updateQuantity, removeItem } = useCart();
   const lineTotal = item.product.price * item.quantity;
+  const itemStock = item.product.stock !== undefined ? item.product.stock : 10;
+  const isAtMaxStock = item.quantity >= itemStock;
 
   return (
     <div className="py-4 border-b border-copen-border/70 flex gap-4 items-start group">
@@ -55,9 +57,15 @@ export const CartItemRow: React.FC<CartItemRowProps> = ({ item }) => {
           <div className="flex items-center gap-2">
             <QuantitySelector
               quantity={item.quantity}
+              max={itemStock}
               onChange={(newQty) => updateQuantity(item.id, newQty)}
               size="sm"
             />
+            {isAtMaxStock && (
+              <span className="text-[9px] uppercase tracking-wider text-amber-800 bg-amber-50 border border-amber-200 px-1 py-0.5 rounded-xs font-medium">
+                Max Stock ({itemStock})
+              </span>
+            )}
             <button
               type="button"
               onClick={() => removeItem(item.id)}
