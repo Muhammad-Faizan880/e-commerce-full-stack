@@ -19,6 +19,13 @@ router.post("/", protect, adminOnly, upload.single("image"), async (req, res) =>
       });
     }
 
+    if (!process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_CLOUD_NAME) {
+      return res.status(500).json({
+        success: false,
+        message: "CLOUDINARY_API_KEY or CLOUDINARY_CLOUD_NAME is missing in Vercel Environment Variables. Please add them in Vercel Settings -> Environment Variables.",
+      });
+    }
+
     console.log(
       `[UPLOAD: CLOUDINARY] Processing "${req.file.originalname}" (${Math.round(req.file.size / 1024)} KB)...`
     );

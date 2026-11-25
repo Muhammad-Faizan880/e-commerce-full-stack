@@ -1,5 +1,7 @@
 export interface Product {
   id: string;
+  sku?: string;
+  productSku?: string;
   name: string;
   subtitle?: string;
   category: 'seating' | 'lighting' | 'tables' | 'bedroom' | 'decor';

@@ -9,6 +9,42 @@ const api = axios.create({
   withCredentials: true,
 });
 
+/**
+ * Security: Sanitize sensitive authentication fields before logging to browser console.
+ * Prevents CWE-532 (Sensitive Information Disclosure in Log Files / DevTools).
+ */
+const sanitizePayload = (data: unknown): unknown => {
+  if (!data || typeof data !== "object") return data;
+
+  if (Array.isArray(data)) {
+    return data.map(sanitizePayload);
+  }
+
+  const sensitiveKeys = [
+    "password",
+    "accesstoken",
+    "refreshtoken",
+    "token",
+    "authorization",
+    "secret",
+    "cardnumber",
+    "cvv",
+  ];
+
+  const sanitized: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
+    const isSensitive = sensitiveKeys.some((s) => key.toLowerCase().includes(s));
+    if (isSensitive) {
+      sanitized[key] = "[PROTECTED / REDACTED]";
+    } else if (typeof value === "object" && value !== null) {
+      sanitized[key] = sanitizePayload(value);
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+};
+
 // REQUEST INTERCEPTOR: Automatically attach access token & log request for easy debugging
 api.interceptors.request.use(
   (config) => {
@@ -18,11 +54,13 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    console.log(
-      `%c [API REQUEST] ${config.method?.toUpperCase()} -> ${config.url}`,
-      "color: #4e5f41; font-weight: bold;",
-      config.data || ""
-    );
+    if (!import.meta.env.PROD) {
+      console.log(
+        `%c [API REQUEST] ${config.method?.toUpperCase()} -> ${config.url}`,
+        "color: #4e5f41; font-weight: bold;",
+        sanitizePayload(config.data) || ""
+      );
+    }
 
     return config;
   },
@@ -35,11 +73,13 @@ api.interceptors.request.use(
 // RESPONSE INTERCEPTOR: Log response data & friendly errors
 api.interceptors.response.use(
   (response) => {
-    console.log(
-      `%c [API RESPONSE] ${response.status} from ${response.config.url}`,
-      "color: #2b7a0b; font-weight: bold;",
-      response.data
-    );
+    if (!import.meta.env.PROD) {
+      console.log(
+        `%c [API RESPONSE] ${response.status} from ${response.config.url}`,
+        "color: #2b7a0b; font-weight: bold;",
+        sanitizePayload(response.data)
+      );
+    }
     return response;
   },
   async (error) => {

@@ -7,6 +7,12 @@ const productSchema = new mongoose.Schema(
       required: [true, "Product name is required"],
       trim: true,
     },
+    sku: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      default: "",
+    },
     subtitle: {
       type: String,
       trim: true,
@@ -97,8 +103,22 @@ productSchema.virtual("id").get(function () {
   return this._id.toHexString();
 });
 
-// Auto-update inStock based on stock count
+// Virtual SKU guarantee so older records also display a clean Scandinavian SKU
+productSchema.virtual("productSku").get(function () {
+  if (this.sku) return this.sku;
+  const catCode = (this.category || "GEN").substring(0, 3).toUpperCase();
+  const idSuffix = this._id ? this._id.toString().slice(-4).toUpperCase() : "001";
+  return `CPN-${catCode}-${idSuffix}`;
+});
+
+// Auto-update inStock based on stock count & generate SKU if missing
 productSchema.pre("save", function (next) {
+  if (!this.sku && this.category) {
+    const catCode = this.category.substring(0, 3).toUpperCase();
+    const idSuffix = this._id ? this._id.toString().slice(-4).toUpperCase() : Math.floor(1000 + Math.random() * 9000);
+    this.sku = `CPN-${catCode}-${idSuffix}`;
+  }
+
   if (this.stock <= 0) {
     this.inStock = false;
   } else {

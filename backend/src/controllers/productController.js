@@ -105,6 +105,7 @@ export const createProduct = async (req, res) => {
   try {
     const {
       name,
+      sku,
       subtitle,
       category,
       categoryLabel,
@@ -128,8 +129,11 @@ export const createProduct = async (req, res) => {
       });
     }
 
+    const initialStock = stock !== undefined ? Math.max(0, Number(stock)) : 10;
+
     const product = await Product.create({
       name,
+      sku: sku ? sku.trim().toUpperCase() : undefined,
       subtitle,
       category,
       categoryLabel: categoryLabel || `${category.charAt(0).toUpperCase() + category.slice(1)} Living`,
@@ -143,8 +147,8 @@ export const createProduct = async (req, res) => {
       material,
       dimensions,
       colors: colors || [],
-      stock: stock !== undefined ? Number(stock) : 10,
-      inStock: Number(stock || 10) > 0,
+      stock: initialStock,
+      inStock: initialStock > 0,
     });
 
     console.log(`[PRODUCTS: CREATED] ID: ${product._id} | Name: "${product.name}" | Price: $${product.price} | Stock: ${product.stock}`);
@@ -181,8 +185,12 @@ export const updateProduct = async (req, res) => {
 
     // Update fields
     const updates = req.body;
+    if (updates.sku) {
+      updates.sku = updates.sku.trim().toUpperCase();
+    }
     if (updates.stock !== undefined) {
-      updates.inStock = Number(updates.stock) > 0;
+      updates.stock = Math.max(0, Number(updates.stock));
+      updates.inStock = updates.stock > 0;
     }
 
     const updatedProduct = await Product.findByIdAndUpdate(
