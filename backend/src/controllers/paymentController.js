@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import stripe from "../config/stripe.js";
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
@@ -92,7 +93,23 @@ export const createCheckoutSession = async (req, res) => {
     const customerEmail =
       shippingAddress.email || req.user?.email || undefined;
 
-    console.log(`[STRIPE: SESSION_INIT] Creating checkout session for user: ${req.user.userId} | Items: ${items.length} | Total: $${total} CAD`);
+    let itemsJson = "[]";
+    try {
+      itemsJson = JSON.stringify(
+        items.map((it) => ({
+          productId: it.productId || it.id,
+          name: it.name,
+          image: it.image || "",
+          price: Number(it.price || 0),
+          quantity: Number(it.quantity || 1),
+          selectedColor: it.selectedColor || "Standard",
+        }))
+      ).substring(0, 490);
+    } catch {
+      // ignore
+    }
+
+    console.log(`[STRIPE: SESSION_INIT] Creating checkout session for user: ${req.user?.userId || "Guest"} | Items: ${items.length} | Total: $${total} CAD`);
 
     // Create the session with Stripe API
     const session = await stripe.checkout.sessions.create({
@@ -103,8 +120,9 @@ export const createCheckoutSession = async (req, res) => {
       success_url: `${frontendUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${frontendUrl}/checkout?canceled=true`,
       metadata: {
-        userId: req.user.userId,
+        userId: req.user?.userId || "",
         customerEmail: customerEmail || "",
+        itemsJson,
         shippingAddressJson: JSON.stringify(shippingAddress).substring(0, 490),
         shippingOptionJson: JSON.stringify(shippingOption || {}).substring(0, 490),
         subtotal: String(subtotal),
@@ -176,22 +194,33 @@ export const verifySessionAndCreateOrder = async (req, res) => {
     // 3. Extract order details from session metadata
     const metadata = session.metadata || {};
     const userId = metadata.userId || req.user?.userId;
+    const isValidUserId = userId && mongoose.Types.ObjectId.isValid(userId);
 
     let shippingAddress = {};
     try {
       shippingAddress = JSON.parse(metadata.shippingAddressJson || "{}");
     } catch {
-      shippingAddress = {
-        firstName: session.customer_details?.name?.split(" ")[0] || "Valued",
-        lastName: session.customer_details?.name?.split(" ").slice(1).join(" ") || "Client",
-        email: session.customer_details?.email || metadata.customerEmail || "",
-        phone: session.customer_details?.phone || "",
-        address: session.customer_details?.address?.line1 || "Main Street",
-        city: session.customer_details?.address?.city || "Toronto",
-        postalCode: session.customer_details?.address?.postal_code || "M5V 2T6",
-        country: session.customer_details?.address?.country || "Canada",
-      };
+      // ignore
     }
+
+    const fallbackEmail =
+      shippingAddress.email ||
+      session.customer_details?.email ||
+      metadata.customerEmail ||
+      "client@copenhagen-atelier.com";
+
+    const normalizedShippingAddress = {
+      firstName: shippingAddress.firstName || session.customer_details?.name?.split(" ")[0] || "Valued",
+      lastName: shippingAddress.lastName || session.customer_details?.name?.split(" ").slice(1).join(" ") || "Client",
+      email: fallbackEmail,
+      phone: shippingAddress.phone || session.customer_details?.phone || "+1 (555) 000-0000",
+      address: shippingAddress.address || session.customer_details?.address?.line1 || "Copenhagen Design St",
+      apartment: shippingAddress.apartment || "",
+      city: shippingAddress.city || session.customer_details?.address?.city || "Toronto",
+      state: shippingAddress.state || session.customer_details?.address?.state || "ON",
+      postalCode: shippingAddress.postalCode || session.customer_details?.address?.postal_code || "M5V 2T6",
+      country: shippingAddress.country || session.customer_details?.address?.country || "Canada",
+    };
 
     let shippingOption = {
       name: "Standard Carbon-Neutral Delivery",
@@ -206,9 +235,30 @@ export const verifySessionAndCreateOrder = async (req, res) => {
       // keep fallback
     }
 
-    // Build items from line_items or session
-    const formattedItems = [];
-    if (session.line_items?.data) {
+    const defaultPieceImage =
+      "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=800";
+
+    // Build items from metadata itemsJson or session line_items
+    let formattedItems = [];
+    try {
+      if (metadata.itemsJson) {
+        const parsed = JSON.parse(metadata.itemsJson);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          formattedItems = parsed.map((it) => ({
+            product: it.productId && mongoose.Types.ObjectId.isValid(it.productId) ? it.productId : undefined,
+            name: it.name || "Curated Design Piece",
+            image: it.image || defaultPieceImage,
+            price: Number(it.price || 0),
+            quantity: Number(it.quantity || 1),
+            selectedColor: it.selectedColor || "Standard",
+          }));
+        }
+      }
+    } catch {
+      // ignore
+    }
+
+    if (formattedItems.length === 0 && session.line_items?.data) {
       for (const line of session.line_items.data) {
         // Skip shipping or tax line items
         if (line.description?.includes("HST") || line.description?.includes("Delivery")) {
@@ -217,12 +267,22 @@ export const verifySessionAndCreateOrder = async (req, res) => {
 
         formattedItems.push({
           name: line.description || "Curated Design Piece",
-          image: "",
+          image: defaultPieceImage,
           price: (line.price?.unit_amount || 0) / 100,
           quantity: line.quantity || 1,
           selectedColor: "Standard",
         });
       }
+    }
+
+    if (formattedItems.length === 0) {
+      formattedItems.push({
+        name: "Bespoke Scandinavian Furnishings",
+        image: defaultPieceImage,
+        price: Number(metadata.subtotal || (session.amount_total / 100)),
+        quantity: 1,
+        selectedColor: "Standard",
+      });
     }
 
     const orderNumber = `CPN-${Math.floor(10000 + Math.random() * 90000)}`;
@@ -233,19 +293,10 @@ export const verifySessionAndCreateOrder = async (req, res) => {
     const discount = Number(metadata.discount || 0);
 
     // 4. Create Order in MongoDB
-    const order = await Order.create({
+    const orderData = {
       orderNumber,
-      user: userId,
-      items: formattedItems.length > 0 ? formattedItems : [
-        {
-          name: "Bespoke Scandinavian Furnishings",
-          image: "",
-          price: subtotal,
-          quantity: 1,
-          selectedColor: "Standard",
-        }
-      ],
-      shippingAddress,
+      items: formattedItems,
+      shippingAddress: normalizedShippingAddress,
       shippingOption,
       paymentMethod: "stripe",
       paymentStatus: "Paid",
@@ -256,15 +307,21 @@ export const verifySessionAndCreateOrder = async (req, res) => {
       tax,
       total,
       status: "Processing",
-    });
+    };
+
+    if (isValidUserId) {
+      orderData.user = userId;
+    }
+
+    const order = await Order.create(orderData);
 
     console.log(`[ORDER: SAVED] Stripe Order #${order.orderNumber} successfully written to MongoDB`);
 
     // 5. Send Order Confirmation Email (Awaited for Vercel Serverless)
     try {
-      const customer = await User.findById(userId);
+      const customer = isValidUserId ? await User.findById(userId) : null;
       const recipientEmail = (
-        shippingAddress.email ||
+        normalizedShippingAddress.email ||
         session.customer_details?.email ||
         customer?.email ||
         ""
@@ -273,7 +330,7 @@ export const verifySessionAndCreateOrder = async (req, res) => {
       if (recipientEmail) {
         const htmlReceipt = generateOrderReceiptHtml({
           order,
-          user: customer || { name: `${shippingAddress.firstName || ""} ${shippingAddress.lastName || ""}`.trim() },
+          user: customer || { name: `${normalizedShippingAddress.firstName} ${normalizedShippingAddress.lastName}`.trim() },
         });
 
         await sendEmail({

@@ -12,7 +12,8 @@ const orderItemSchema = new mongoose.Schema({
   },
   image: {
     type: String,
-    required: true,
+    required: false,
+    default: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=800",
   },
   price: {
     type: Number,
@@ -42,14 +43,14 @@ const orderSchema = new mongoose.Schema(
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false,
     },
     items: [orderItemSchema],
     shippingAddress: {
       firstName: { type: String, required: true },
       lastName: { type: String, required: true },
       email: { type: String, required: true },
-      phone: { type: String, required: true },
+      phone: { type: String, required: false, default: "+1 (555) 000-0000" },
       address: { type: String, required: true },
       apartment: { type: String, default: "" },
       city: { type: String, required: true },

@@ -123,7 +123,9 @@ const SuccessPage: React.FC = () => {
       } catch (err: any) {
         console.error('[STRIPE_CLIENT: VERIFY_FAILED]', err);
         if (isMounted) {
-          setError(err?.response?.data?.message || err?.message || 'Payment verification failed');
+          const detail = err?.response?.data?.error;
+          const msg = err?.response?.data?.message || err?.message || 'Payment verification failed';
+          setError(detail ? `${msg} (${detail})` : msg);
         }
       } finally {
         if (isMounted) setLoading(false);

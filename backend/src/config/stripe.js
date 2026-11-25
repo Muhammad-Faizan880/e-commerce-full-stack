@@ -3,9 +3,14 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const stripeKey = process.env.STRIPE_SECRET_KEY ? process.env.STRIPE_SECRET_KEY.trim() : "";
+const rawKey = process.env.STRIPE_SECRET_KEY || "";
+const stripeKey = rawKey.trim().replace(/^["']|["']$/g, "");
 
-const stripe = new Stripe(stripeKey, {
+if (!stripeKey) {
+  console.error("[STRIPE_CONFIG: CRITICAL] STRIPE_SECRET_KEY is missing from environment variables!");
+}
+
+const stripe = new Stripe(stripeKey || "sk_test_placeholder", {
   apiVersion: "2024-06-20",
 });
 
