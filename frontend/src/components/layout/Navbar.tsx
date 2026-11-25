@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ShoppingBag,
   Search,
@@ -25,6 +25,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onSelectCategory,
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { itemCount, setIsCartOpen, setCurrentView } = useCart();
   const { user, isAuthenticated, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -44,18 +45,15 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-
-
- 
-
-
+  const isHome = location.pathname === '/';
+  const isShop = location.pathname === '/shop';
 
   return (
     <header className="sticky top-0 z-40 bg-offwhite/95 backdrop-blur-md border-b border-copen-border transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-18">
           {/* Left: Mobile hamburger & Logo */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -68,8 +66,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Logo matching screenshot: = copenhagen */}
             <div
               onClick={() => {
-                setCurrentView('shop');
-                if (onSelectCategory) onSelectCategory('all');
+                navigate('/');
               }}
               className="flex items-center gap-2 cursor-pointer group select-none"
             >
@@ -81,8 +78,51 @@ export const Navbar: React.FC<NavbarProps> = ({
                 copenhagen
               </span>
             </div>
-          </div>
 
+            {/* Desktop Navigation Links */}
+            <nav className="hidden lg:flex items-center gap-6 ml-4">
+              <button
+                type="button"
+                onClick={() => navigate('/')}
+                className={`text-xs uppercase tracking-widest font-medium transition-colors cursor-pointer py-1 border-b-2 ${
+                  isHome
+                    ? 'border-olive-700 text-copen-black'
+                    : 'border-transparent text-copen-gray hover:text-copen-black'
+                }`}
+              >
+                Home
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentView('shop');
+                  navigate('/shop');
+                  if (onSelectCategory) onSelectCategory('all');
+                }}
+                className={`text-xs uppercase tracking-widest font-medium transition-colors cursor-pointer py-1 border-b-2 ${
+                  isShop
+                    ? 'border-olive-700 text-copen-black'
+                    : 'border-transparent text-copen-gray hover:text-copen-black'
+                }`}
+              >
+                Collection
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/shop?category=seating')}
+                className="text-xs uppercase tracking-widest font-medium text-copen-gray hover:text-copen-black transition-colors cursor-pointer py-1 border-b-2 border-transparent"
+              >
+                Seating
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/shop?category=lighting')}
+                className="text-xs uppercase tracking-widest font-medium text-copen-gray hover:text-copen-black transition-colors cursor-pointer py-1 border-b-2 border-transparent"
+              >
+                Lighting
+              </button>
+            </nav>
+          </div>
 
           {/* Right: Search, Auth, Cart Bag */}
           <div className="flex items-center gap-4 sm:gap-6">
@@ -91,7 +131,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="button"
               onClick={() => {
                 if (onSearchClick) onSearchClick();
-                else navigate('/?search=true');
+                else navigate('/shop?search=true');
               }}
               className="p-2 text-copen-gray hover:text-copen-black transition-colors cursor-pointer"
               aria-label="Search collection"
@@ -287,7 +327,49 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
           </div>
 
-       
+          {/* Mobile Navigation Links */}
+          <nav className="flex flex-col gap-2 pt-1 pb-2">
+            <button
+              type="button"
+              onClick={() => {
+                navigate('/');
+                setMobileMenuOpen(false);
+              }}
+              className="text-left py-2 px-3 text-xs uppercase tracking-widest font-medium text-copen-black hover:bg-offwhite-card transition-colors rounded-xs"
+            >
+              Home
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                navigate('/shop');
+                setMobileMenuOpen(false);
+              }}
+              className="text-left py-2 px-3 text-xs uppercase tracking-widest font-medium text-copen-black hover:bg-offwhite-card transition-colors rounded-xs"
+            >
+              Full Collection
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                navigate('/shop?category=seating');
+                setMobileMenuOpen(false);
+              }}
+              className="text-left py-2 px-3 text-xs uppercase tracking-widest font-medium text-copen-gray hover:text-copen-black hover:bg-offwhite-card transition-colors rounded-xs"
+            >
+              Lounge Seating
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                navigate('/shop?category=lighting');
+                setMobileMenuOpen(false);
+              }}
+              className="text-left py-2 px-3 text-xs uppercase tracking-widest font-medium text-copen-gray hover:text-copen-black hover:bg-offwhite-card transition-colors rounded-xs"
+            >
+              Architectural Lighting
+            </button>
+          </nav>
         </div>
       )}
     </header>

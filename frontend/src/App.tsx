@@ -5,6 +5,7 @@ import { ToastProvider } from './context/ToastContext';
 import { CartProvider, useCart } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
 import { StoreLayout } from './components/layout/StoreLayout';
+import { HomePage } from './pages/HomePage';
 import { ProductGrid } from './components/product/ProductGrid';
 import { ProductDetailView } from './components/product/ProductDetailView';
 import { CheckoutView } from './components/checkout/CheckoutView';
@@ -189,7 +190,8 @@ export const App: React.FC = () => {
             {/* Storefront Layout (Navbar, AnnouncementBar, Footer, Modals) */}
             <Route element={<StoreLayout />}>
               {/* Public Routes */}
-              <Route path="/" element={<ShopPage />} />
+              <Route path="/" element={<HomePage />} />
+              <Route path="/shop" element={<ShopPage />} />
               <Route path="/product/:id" element={<ProductDetailView />} />
               <Route path="/checkout" element={<CheckoutView />} />
               <Route path="/auth" element={<AuthView />} />

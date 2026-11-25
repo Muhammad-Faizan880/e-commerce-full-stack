@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { AnnouncementBar } from './AnnouncementBar';
 import { Navbar } from './Navbar';
 import { Footer } from './Footer';
+import { ScrollToTop } from './ScrollToTop';
 import { CartDrawer } from '../cart/CartDrawer';
 import { FullCartModal } from '../cart/FullCartModal';
 import { QuickViewModal } from '../product/QuickViewModal';
@@ -21,6 +22,9 @@ export const StoreLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-offwhite text-copen-black selection:bg-olive-600 selection:text-white">
+      {/* Ensures page always starts at top on route changes */}
+      <ScrollToTop />
+
       {/* Top Scandinavian Announcement */}
       <AnnouncementBar />
 
