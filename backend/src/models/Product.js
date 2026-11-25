@@ -112,7 +112,7 @@ productSchema.virtual("productSku").get(function () {
 });
 
 // Auto-update inStock based on stock count & generate SKU if missing
-productSchema.pre("save", function (next) {
+productSchema.pre("save", function () {
   if (!this.sku && this.category) {
     const catCode = this.category.substring(0, 3).toUpperCase();
     const idSuffix = this._id ? this._id.toString().slice(-4).toUpperCase() : Math.floor(1000 + Math.random() * 9000);
@@ -124,7 +124,6 @@ productSchema.pre("save", function (next) {
   } else {
     this.inStock = true;
   }
-  next();
 });
 
 const Product = mongoose.models.Product || mongoose.model("Product", productSchema);

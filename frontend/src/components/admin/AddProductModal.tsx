@@ -116,8 +116,10 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({
         badge: '',
       });
     } catch (err: unknown) {
-      const errObj = err as { response?: { data?: { message?: string } }; message?: string };
-      showToast(errObj.response?.data?.message || errObj.message || 'Failed to create product', 'error');
+      const errObj = err as { response?: { data?: { message?: string; error?: string } }; message?: string };
+      const detail = errObj.response?.data?.error;
+      const msg = errObj.response?.data?.message || errObj.message || 'Failed to create product';
+      showToast(detail ? `${msg}: ${detail}` : msg, 'error');
     } finally {
       setIsSubmitting(false);
     }
