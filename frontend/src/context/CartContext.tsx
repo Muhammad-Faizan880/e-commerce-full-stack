@@ -86,7 +86,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleSetCurrentView = (view: 'shop' | 'checkout' | 'success' | 'auth' | 'account') => {
     setCurrentView(view);
     const viewToPath = {
-      shop: '/',
+      shop: '/shop',
       checkout: '/checkout',
       auth: '/auth',
       account: '/account',

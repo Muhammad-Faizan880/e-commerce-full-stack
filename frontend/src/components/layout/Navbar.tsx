@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ShoppingBag,
-  Search,
   Menu,
   X,
   ChevronDown,
@@ -21,7 +20,6 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
-  onSearchClick,
   onSelectCategory,
 }) => {
   const navigate = useNavigate();
@@ -51,9 +49,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header className="sticky top-0 z-40 bg-offwhite/95 backdrop-blur-md border-b border-copen-border transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-18">
+        <div className="relative flex items-center justify-between h-18">
           {/* Left: Mobile hamburger & Logo */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -78,67 +76,41 @@ export const Navbar: React.FC<NavbarProps> = ({
                 copenhagen
               </span>
             </div>
-
-            {/* Desktop Navigation Links */}
-            <nav className="hidden lg:flex items-center gap-6 ml-4">
-              <button
-                type="button"
-                onClick={() => navigate('/')}
-                className={`text-xs uppercase tracking-widest font-medium transition-colors cursor-pointer py-1 border-b-2 ${
-                  isHome
-                    ? 'border-olive-700 text-copen-black'
-                    : 'border-transparent text-copen-gray hover:text-copen-black'
-                }`}
-              >
-                Home
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setCurrentView('shop');
-                  navigate('/shop');
-                  if (onSelectCategory) onSelectCategory('all');
-                }}
-                className={`text-xs uppercase tracking-widest font-medium transition-colors cursor-pointer py-1 border-b-2 ${
-                  isShop
-                    ? 'border-olive-700 text-copen-black'
-                    : 'border-transparent text-copen-gray hover:text-copen-black'
-                }`}
-              >
-                Collection
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/shop?category=seating')}
-                className="text-xs uppercase tracking-widest font-medium text-copen-gray hover:text-copen-black transition-colors cursor-pointer py-1 border-b-2 border-transparent"
-              >
-                Seating
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/shop?category=lighting')}
-                className="text-xs uppercase tracking-widest font-medium text-copen-gray hover:text-copen-black transition-colors cursor-pointer py-1 border-b-2 border-transparent"
-              >
-                Lighting
-              </button>
-            </nav>
           </div>
 
-          {/* Right: Search, Auth, Cart Bag */}
-          <div className="flex items-center gap-4 sm:gap-6">
-            {/* Search Trigger */}
+          {/* Center: Desktop Navigation Links */}
+          <nav className="hidden lg:flex items-center gap-8 absolute left-1/2 -translate-x-1/2">
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className={`text-xs uppercase tracking-widest font-medium transition-colors cursor-pointer py-1 border-b-2 ${
+                isHome
+                  ? 'border-olive-700 text-copen-black'
+                  : 'border-transparent text-copen-gray hover:text-copen-black'
+              }`}
+            >
+              Home
+            </button>
             <button
               type="button"
               onClick={() => {
-                if (onSearchClick) onSearchClick();
-                else navigate('/shop?search=true');
+                setCurrentView('shop');
+                navigate('/shop');
+                if (onSelectCategory) onSelectCategory('all');
               }}
-              className="p-2 text-copen-gray hover:text-copen-black transition-colors cursor-pointer"
-              aria-label="Search collection"
-              title="Search collection"
+              className={`text-xs uppercase tracking-widest font-medium transition-colors cursor-pointer py-1 border-b-2 ${
+                isShop
+                  ? 'border-olive-700 text-copen-black'
+                  : 'border-transparent text-copen-gray hover:text-copen-black'
+              }`}
             >
-              <Search className="w-4 h-4" />
+              Collection
             </button>
+          </nav>
+
+          {/* Right: Search, Auth, Cart Bag */}
+          <div className="flex items-center gap-4 sm:gap-6">
+          
 
             {/* Authentication / Account Button */}
             <div className="relative" ref={userDropdownRef}>

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowRight, ShieldCheck, Truck, RefreshCw, Award } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useToast } from '../../context/ToastContext';
 
 export const Footer: React.FC = () => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const { showToast } = useToast();
 
@@ -89,11 +91,11 @@ export const Footer: React.FC = () => {
               Collections
             </h5>
             <ul className="space-y-2 text-xs text-copen-gray">
-              <li><span className="hover:text-olive-700 cursor-pointer">Lounge Seating</span></li>
-              <li><span className="hover:text-olive-700 cursor-pointer">Ambient Lighting</span></li>
-              <li><span className="hover:text-olive-700 cursor-pointer">Bedroom & Storage</span></li>
-              <li><span className="hover:text-olive-700 cursor-pointer">Dining & Coffee Tables</span></li>
-              <li><span className="hover:text-olive-700 cursor-pointer">Tactile Decor</span></li>
+              <li><span onClick={() => navigate('/shop?category=seating')} className="hover:text-olive-700 cursor-pointer transition-colors">Lounge Seating</span></li>
+              <li><span onClick={() => navigate('/shop?category=lighting')} className="hover:text-olive-700 cursor-pointer transition-colors">Ambient Lighting</span></li>
+              <li><span onClick={() => navigate('/shop?category=bedroom')} className="hover:text-olive-700 cursor-pointer transition-colors">Bedroom & Storage</span></li>
+              <li><span onClick={() => navigate('/shop?category=tables')} className="hover:text-olive-700 cursor-pointer transition-colors">Dining & Coffee Tables</span></li>
+              <li><span onClick={() => navigate('/shop?category=decor')} className="hover:text-olive-700 cursor-pointer transition-colors">Tactile Decor</span></li>
             </ul>
           </div>
 

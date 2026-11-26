@@ -128,7 +128,7 @@ export const ProductDetailView: React.FC = () => {
           The curated item you are looking for may have been archived or is no longer available in our collection.
         </p>
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/shop')}
           className="inline-flex items-center gap-2 px-6 py-3 bg-copen-black text-offwhite-50 text-xs uppercase tracking-widest hover:bg-olive-700 transition-colors cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
