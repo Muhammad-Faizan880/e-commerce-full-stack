@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Sparkles, ShieldCheck, Truck, Compass, ChevronRight } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Truck, Compass, ChevronRight } from 'lucide-react';
 import { fetchProducts } from '../api/productApi';
 import { PRODUCTS } from '../data/products';
 import { ProductCard } from '../components/product/ProductCard';
