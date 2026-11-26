@@ -81,7 +81,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product, onQuickView }
           src={product.gallery[imageIndex] || product.image}
           alt={product.name}
           onError={handleImageError}
-          className="h-full w-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
+          className="absolute inset-0 block h-full w-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
           loading="lazy"
         />
 

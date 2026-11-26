@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, ShieldCheck, Truck, Compass, ChevronRight } from 'lucide-react';
 import { fetchProducts } from '../api/productApi';
-import { PRODUCTS } from '../data/products';
+import { PRODUCTS, handleImageError } from '../data/products';
 import { ProductCard } from '../components/product/ProductCard';
 import { useCart } from '../context/CartContext';
 import type { Product } from '../types/product';
@@ -175,13 +175,14 @@ export const HomePage: React.FC = () => {
             <div
               key={col.category}
               onClick={() => navigate(`/shop?category=${col.category}`)}
-              className="group relative bg-offwhite-card border border-copen-border overflow-hidden cursor-pointer flex flex-col justify-between transition-all duration-300 hover:shadow-lg"
+              className="group relative bg-offwhite-surface border border-copen-border overflow-hidden cursor-pointer flex flex-col transition-all duration-300 hover:shadow-lg"
             >
-              <div className="relative aspect-[4/5] overflow-hidden bg-offwhite-300">
+              <div className="relative aspect-[4/5] w-full overflow-hidden bg-offwhite-300 shrink-0">
                 <img
                   src={col.image}
                   alt={col.title}
-                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
+                  onError={handleImageError}
+                  className="absolute inset-0 block w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
                 />
                 <div className="absolute top-4 left-4">
                   <span className="px-2.5 py-1 bg-offwhite/90 backdrop-blur-md text-[9px] uppercase tracking-widest text-copen-black font-semibold border border-copen-border">
@@ -190,14 +191,16 @@ export const HomePage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-6 space-y-2 bg-offwhite-surface border-t border-copen-border">
-                <h3 className="font-serif text-xl text-copen-black group-hover:text-olive-700 transition-colors">
-                  {col.title}
-                </h3>
-                <p className="text-xs text-copen-gray leading-relaxed line-clamp-2">
-                  {col.subtitle}
-                </p>
-                <div className="pt-2 flex items-center gap-1 text-[11px] uppercase tracking-wider text-olive-800 font-semibold">
+              <div className="p-6 flex-1 flex flex-col justify-between gap-4 bg-offwhite-surface border-t border-copen-border">
+                <div className="space-y-2">
+                  <h3 className="font-serif text-xl text-copen-black group-hover:text-olive-700 transition-colors">
+                    {col.title}
+                  </h3>
+                  <p className="text-xs text-copen-gray leading-relaxed line-clamp-2">
+                    {col.subtitle}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 text-[11px] uppercase tracking-wider text-olive-800 font-semibold">
                   <span>Explore category</span>
                   <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
                 </div>
